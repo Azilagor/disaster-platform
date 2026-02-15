@@ -12,6 +12,10 @@ const normalizePhone = require("../utils/normalizePhone");
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
 
+const { sendVerificationEmail } = require("../services/emailService");
+const { generateToken, hashToken } = require("../utils/emailTokens");
+
+
 
 const ALLOWED_SELF_REGISTER_ROLES = ["USER", "VOLUNTEER", "COORDINATOR"];
 const ROLE_MAP = {
@@ -67,7 +71,7 @@ router.post("/register", async (req, res) => {
     email = normalizeEmail(email);
     phone = normalizePhone(phone);
 
-    // ✅ роль: маппинг + whitelist (ADMIN не дадим)
+    // ✅ роль: whitelist (ADMIN не дадим)
     const mappedRole = ROLE_MAP[role] || "USER";
     const safeRole = ALLOWED_SELF_REGISTER_ROLES.includes(mappedRole)
       ? mappedRole
@@ -77,6 +81,7 @@ router.post("/register", async (req, res) => {
       where: { email },
       select: { id: true },
     });
+
     if (existingEmail) {
       return res.status(400).json({ message: "Email уже зарегистрирован" });
     }
@@ -85,6 +90,7 @@ router.post("/register", async (req, res) => {
       where: { phone },
       select: { id: true },
     });
+
     if (existingPhone) {
       return res.status(400).json({ message: "Телефон уже зарегистрирован" });
     }
@@ -112,26 +118,102 @@ router.post("/register", async (req, res) => {
       },
     });
 
-    // ✅ JWT: только userId + ✅ expiresIn (срок жизни НЕ забыли)
+    // 🔥 ===== EMAIL VERIFICATION =====
+
+    const rawToken = generateToken();
+    const tokenHash = hashToken(rawToken);
+
+    // 🔥 upsert — если вдруг токен уже есть, заменим
+    await prisma.emailVerificationToken.upsert({
+      where: { userId: user.id },
+      update: {
+        tokenHash,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+      create: {
+        userId: user.id,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    const verifyLink = `${process.env.APP_BASE_URL}/auth/verify-email?token=${rawToken}`;
+
+    await sendVerificationEmail(user.email, verifyLink);
+
+    // ✅ JWT: только userId + срок жизни
     const payload = { userId: user.id };
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    const token = jwt.sign(payload, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
+    });
 
     return res.status(201).json({
-      message: "Регистрация успешна",
+      message: "Регистрация успешна. Проверьте почту для подтверждения.",
       user,
       token,
     });
   } catch (err) {
     if (err.code === "P2002") {
-      return res
-        .status(400)
-        .json({ message: "Email или телефон уже зарегистрирован" });
+      return res.status(400).json({
+        message: "Email или телефон уже зарегистрирован",
+      });
     }
 
     console.error("REGISTER error:", err);
     return res.status(500).json({ message: "Ошибка сервера" });
   }
 });
+
+
+router.get("/verify-email", async (req, res) => {
+  try {
+    const rawToken = req.query.token;
+
+    if (!rawToken || typeof rawToken !== "string") {
+      return res.status(400).send("Invalid token");
+    }
+
+    const tokenHash = hashToken(rawToken);
+
+    const record = await prisma.emailVerificationToken.findFirst({
+      where: { tokenHash },
+      select: { userId: true, expiresAt: true },
+    });
+
+    if (!record) {
+      return res.status(400).send("Token invalid");
+    }
+
+    if (record.expiresAt < new Date()) {
+      // можно удалить протухший токен (по желанию)
+      await prisma.emailVerificationToken
+        .delete({ where: { userId: record.userId } })
+        .catch(() => {});
+      return res.status(400).send("Token expired");
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: record.userId },
+        data: { isEmailVerified: true },
+      }),
+      prisma.emailVerificationToken.delete({
+        where: { userId: record.userId },
+      }),
+    ]);
+
+    return res.redirect(
+      `${process.env.FRONTEND_BASE_URL}/login.html?verified=1`
+    );
+  } catch (err) {
+    console.error("VERIFY EMAIL ERROR:", err);
+    return res.status(500).send("Server error");
+  }
+});
+
+
+
+
 
 // POST /auth/login
 router.post("/login", async (req, res) => {
