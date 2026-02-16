@@ -405,9 +405,10 @@ body {
     font-weight: 600;
 }
 
+.hero-card .status-new,
 .status-new {
-    background: #DBEAFE;
-    color: var(--primary);
+    background: var(--primary);
+    color: #fff;
 }
 
 .status-in-progress {
@@ -666,6 +667,11 @@ body {
    Responsive Design
    =========================== */
 @media (max-width: 1024px) {
+    /* В шапке приоритет: DisasterHelp и кнопки; пункты меню скрываем первыми */
+    .nav-menu {
+        display: none;
+    }
+
     .hero .container {
         grid-template-columns: 1fr;
     }
@@ -687,6 +693,13 @@ body {
     }
 }
 
+/* Текст логотипа убираем только когда места действительно мало (кнопки прижимаются) */
+@media (max-width: 480px) {
+    .header .logo .logo-text {
+        display: none;
+    }
+}
+
 @media (max-width: 768px) {
     .hero-title {
         font-size: var(--font-size-3xl);
@@ -703,10 +716,6 @@ body {
     .hero-stats {
         grid-template-columns: repeat(3, 1fr);
         gap: var(--spacing-md);
-    }
-    
-    .nav-menu {
-        display: none;
     }
     
     .features-grid {
