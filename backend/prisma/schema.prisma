@@ -13,6 +13,40 @@ enum Role {
   ADMIN
 }
 
+enum RequestStatus {
+  NEW
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum RequestPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ProblemType {
+  MEDICAL
+  FOOD
+  EVACUATION
+  SHELTER
+  REPAIR
+  PSYCHOLOGICAL
+}
+
+enum District {
+  ALMALYNSKIY
+  AUEZOVSKIY
+  BOSTANDYQ
+  MEDEU
+  NAURYZBAY
+  TURKSIB
+  ZHETYSU
+  ALATAU
+}
+
 model User {
   id           Int    @id @default(autoincrement())
   firstName    String
@@ -28,10 +62,53 @@ model User {
   updatedAt DateTime @updatedAt
 
   emailVerificationToken EmailVerificationToken?
-  passwordResetToken PasswordResetToken?
+  passwordResetToken     PasswordResetToken?
 
+  // Requests relations
+  createdRequests  Request[] @relation("RequestCreatedBy")
+  assignedRequests Request[] @relation("RequestAssignedTo")
 
   @@map("users")
+}
+
+model Request {
+  id              Int             @id @default(autoincrement())
+
+  problemType     ProblemType
+  title           String
+  description     String
+  priority        RequestPriority @default(MEDIUM)
+  status          RequestStatus   @default(NEW)
+
+  peopleCount     Int             @default(1)
+  address         String
+  district        District
+  landmark        String?
+
+  contactName     String
+  contactPhone    String
+  contactEmail    String?
+  contactTelegram String?
+  additionalInfo  String?
+
+  consentAt       DateTime
+
+  createdById Int
+  createdBy   User @relation("RequestCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+
+  assignedToId    Int?
+  assignedTo      User? @relation("RequestAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([problemType])
+  @@index([district])
+
+  @@map("requests")
 }
 
 model EmailVerificationToken {

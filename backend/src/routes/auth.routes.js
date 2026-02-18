@@ -314,10 +314,6 @@ router.post("/login", async (req, res) => {
   }
 });
 
-module.exports = router;
-
-
-
 // POST /auth/forgot-password
 router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
   try {
@@ -453,3 +449,4 @@ router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
   }
 });
 
+module.exports = router;
