@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
-const prisma = require("../prisma");
+const prisma = require("../prismaClient");
+
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -21,7 +22,6 @@ async function auth(req, res, next) {
       return res.status(401).json({ message: "Необходима авторизация" });
     }
 
-    // JWT содержит только userId
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const userId = Number(decoded.userId);
@@ -29,7 +29,6 @@ async function auth(req, res, next) {
       return res.status(401).json({ message: "Неверный токен" });
     }
 
-    // Роль и флаги берём из БД
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -46,7 +45,6 @@ async function auth(req, res, next) {
     req.user = user;
     return next();
   } catch (err) {
-    // Можно различать ошибки jwt, чтобы легче дебажить
     if (err.name === "TokenExpiredError") {
       return res.status(401).json({ message: "Токен истёк" });
     }
