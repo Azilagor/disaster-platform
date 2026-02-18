@@ -28,6 +28,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   emailVerificationToken EmailVerificationToken?
+  passwordResetToken PasswordResetToken?
+
 
   @@map("users")
 }
@@ -42,4 +44,16 @@ model EmailVerificationToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
 }
