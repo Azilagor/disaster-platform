@@ -13,6 +13,10 @@
           </router-link>
         </div>
 
+        <!-- Messages -->
+        <div v-if="errorMessage" class="auth-message auth-message-error">{{ errorMessage }}</div>
+        <div v-if="successMessage" class="auth-message auth-message-success">{{ successMessage }}</div>
+
         <!-- Login Form -->
         <div class="auth-form-wrapper" v-show="isLoginMode">
           <div class="form-header">
@@ -57,19 +61,6 @@
               Войти
             </button>
           </form>
-
-          <div class="form-divider">
-            <span>или</span>
-          </div>
-
-          <div class="social-login">
-            <button class="btn btn-social" @click="handleGoogleLogin">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M18.17 8.36H10V11.91H14.7C14.24 13.91 12.5 15 10 15C7.24 15 5 12.76 5 10C5 7.24 7.24 5 10 5C11.27 5 12.41 5.47 13.29 6.24L15.84 3.69C14.23 2.24 12.21 1.36 10 1.36C5.03 1.36 1 5.39 1 10.36C1 15.33 5.03 19.36 10 19.36C14.97 19.36 19 15.33 19 10.36C19 9.69 18.93 9.03 18.79 8.4L18.17 8.36Z" fill="#4285F4"/>
-              </svg>
-              Войти через Google
-            </button>
-          </div>
 
           <div class="form-footer">
             <p>Нет аккаунта? <a href="#" class="link" @click.prevent="toggleMode">Зарегистрироваться</a></p>
@@ -229,10 +220,15 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import * as authApi from '../api/auth.js'
+import { withLoading } from '../stores/loading.js'
 
 const router = useRouter()
+const route = useRoute()
 const isLoginMode = ref(true)
+const errorMessage = ref('')
+const successMessage = ref(route.query.verified ? 'Почта подтверждена. Войдите в систему.' : '')
 
 // Login form data
 const loginForm = ref({
@@ -256,56 +252,53 @@ const registerForm = ref({
 // Toggle between login and register
 const toggleMode = () => {
   isLoginMode.value = !isLoginMode.value
+  errorMessage.value = ''
+  successMessage.value = ''
 }
 
 // Handle login
 const handleLogin = async () => {
-  console.log('Login attempt:', loginForm.value)
-  
-  // TODO: Здесь будет API вызов
-  // Пока просто симуляция
+  errorMessage.value = ''
   try {
-    // Временная заглушка - сохраняем токен
-    localStorage.setItem('token', 'fake-jwt-token')
-    localStorage.setItem('user', JSON.stringify({
-      email: loginForm.value.email,
-      role: 'user'
-    }))
-    
-    // Редирект на dashboard
+    const { user, token } = await withLoading(() =>
+      authApi.login(loginForm.value.email, loginForm.value.password)
+    )
+    localStorage.setItem('token', token)
+    localStorage.setItem('user', JSON.stringify(user))
+    if (loginForm.value.remember) {
+      localStorage.setItem('remember', '1')
+    } else {
+      localStorage.removeItem('remember')
+    }
     router.push('/dashboard')
   } catch (error) {
-    console.error('Login error:', error)
-    alert('Ошибка входа. Попробуйте снова.')
+    errorMessage.value = error.message || 'Ошибка входа. Попробуйте снова.'
   }
 }
 
 // Handle registration
 const handleRegister = async () => {
-  // Validate passwords match
   if (registerForm.value.password !== registerForm.value.passwordConfirm) {
-    alert('Пароли не совпадают!')
+    errorMessage.value = 'Пароли не совпадают'
     return
   }
-  
-  console.log('Registration attempt:', registerForm.value)
-  
-  // TODO: Здесь будет API вызов
+  errorMessage.value = ''
   try {
-    // Временная заглушка
-    alert('Регистрация успешна! Войдите в систему.')
+    const { message } = await withLoading(() =>
+      authApi.register({
+        firstName: registerForm.value.firstName,
+        lastName: registerForm.value.lastName,
+        email: registerForm.value.email,
+        phone: registerForm.value.phone,
+        password: registerForm.value.password,
+        role: registerForm.value.role || 'user'
+      })
+    )
+    successMessage.value = message || 'Регистрация успешна. Проверьте почту для подтверждения.'
     toggleMode()
   } catch (error) {
-    console.error('Registration error:', error)
-    alert('Ошибка регистрации. Попробуйте снова.')
+    errorMessage.value = error.message || 'Ошибка регистрации. Попробуйте снова.'
   }
-}
-
-// Handle Google login
-const handleGoogleLogin = () => {
-  console.log('Google login clicked')
-  // TODO: Интеграция с Google OAuth
-  alert('Google OAuth будет интегрирован позже')
 }
 
 // Show forgot password
