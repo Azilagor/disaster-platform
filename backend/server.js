@@ -17,9 +17,21 @@ app.use(express.json());
 
 
 
+app.set("trust proxy", true);
+
 app.get("/api-docs/swagger.json", (req, res) => {
+  const fixed = { ...swaggerFile };
+  fixed.host = req.get("host");
+
+  const proto = (req.headers["x-forwarded-proto"] || req.protocol || "http")
+    .toString()
+    .split(",")[0]
+    .trim();
+
+  fixed.schemes = [proto];
+
   res.setHeader("Content-Type", "application/json");
-  res.send(swaggerFile);
+  res.send(fixed);
 });
 
 app.use(
@@ -27,11 +39,9 @@ app.use(
   swaggerUi.serve,
   swaggerUi.setup(null, {
     swaggerOptions: {
-      urls: [
-        { url: "/api-docs/swagger.json", name: "API" }
-      ],
-      urlsPrimaryName: "API"
-    }
+      urls: [{ url: "/api-docs/swagger.json", name: "API" }],
+      urlsPrimaryName: "API",
+    },
   })
 );
 
