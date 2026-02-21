@@ -11,6 +11,19 @@
     "http"
   ],
   "paths": {
+    "/api-docs/swagger.json": {
+      "get": {
+        "description": "",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/": {
       "get": {
         "description": "",

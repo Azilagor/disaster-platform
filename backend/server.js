@@ -8,7 +8,7 @@ const cors = require("cors");
 dotenv.config();
 
 const app = express();
-
+const PORT = process.env.PORT || 3000;
 const helmet = require("helmet");
 app.use(helmet());
 
@@ -17,7 +17,23 @@ app.use(express.json());
 
 
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
+app.get("/api-docs/swagger.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerFile);
+});
+
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(null, {
+    swaggerOptions: {
+      urls: [
+        { url: "/api-docs/swagger.json", name: "API" }
+      ],
+      urlsPrimaryName: "API"
+    }
+  })
+);
 
 
 const authRoutes = require("./src/routes/auth.routes"); 
@@ -43,7 +59,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Ошибка сервера" });
 });
 
-const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log("===================================");
   console.log(`🚀 Сервер запущен на порту ${PORT}`);
