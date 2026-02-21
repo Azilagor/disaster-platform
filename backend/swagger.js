@@ -1,3 +1,6 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
 const swaggerAutogen = require("swagger-autogen")();
 
 const doc = {
@@ -10,7 +13,10 @@ const doc = {
 };
 
 const outputFile = "./swagger-output.json";
-const endpointsFiles = ["./server.js"]; 
+
+const endpointsFiles = [
+  "./server.js",
+];
 
 swaggerAutogen(outputFile, endpointsFiles, doc).then(() => {
   console.log("✅ swagger-output.json generated");

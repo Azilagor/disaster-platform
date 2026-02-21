@@ -23,9 +23,14 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 const authRoutes = require("./src/routes/auth.routes"); 
 app.use("/auth", authRoutes);
 
+const requestRoutes = require("./src/routes/requests.routes");
+app.use("/requests", requestRoutes);
+
+
 app.get("/", (req, res) => {
   res.json({ status: "ok", service: "disaster-platform-api" });
 });
+
 
 
 app.use((req, res) => {
