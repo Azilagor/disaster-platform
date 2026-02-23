@@ -245,7 +245,7 @@ router.post("/resend-verification", auth, async (req, res) => {
       create: { userId: user.id, tokenHash, expiresAt },
     });
 
-    const verifyLink = `${process.env.APP_BASE_URL}/auth/verify-email?token=${rawToken}`;
+    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify-email?token=${rawToken}`;
     await sendVerificationEmail(user.email, verifyLink);
 
     return res.json({ message: "Письмо отправлено повторно" });
@@ -348,7 +348,7 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
       create: { userId: user.id, tokenHash, expiresAt },
     });
 
-    const resetLink = `${process.env.APP_BASE_URL}/auth/reset-password?token=${rawToken}`;
+    const resetLink = `${process.env.APP_BASE_URL}/api/auth/reset-password?token=${rawToken}`;
 
     await sendResetPasswordEmail(user.email, resetLink);
 
