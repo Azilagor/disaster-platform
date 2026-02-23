@@ -1,8 +1,35 @@
 <template>
   <div class="dashboard-layout">
-    <aside class="sidebar">
+    <header class="mobile-header" aria-hidden="true">
+      <router-link to="/dashboard" class="mobile-logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <path
+            d="M16 2L4 9V16C4 23.732 9.268 28 16 30C22.732 28 28 23.732 28 16V9L16 2Z"
+            fill="#2563EB"
+          />
+          <path d="M16 10V22M10 16H22" stroke="white" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span>DisasterHelp</span>
+      </router-link>
+      <button
+        type="button"
+        class="mobile-menu-btn"
+        aria-label="Открыть меню"
+        :aria-expanded="sidebarOpen"
+        @click="sidebarOpen = !sidebarOpen"
+      >
+        <svg v-if="!sidebarOpen" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M3 12h18M3 18h18" />
+        </svg>
+        <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </header>
+    <div v-if="sidebarOpen" class="sidebar-backdrop" aria-hidden="true" @click="sidebarOpen = false" />
+    <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
       <div class="sidebar-header">
-        <router-link to="/" class="logo">
+        <router-link to="/dashboard" class="logo" @click="sidebarOpen = false">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
             <path
               d="M16 2L4 9V16C4 23.732 9.268 28 16 30C22.732 28 28 23.732 28 16V9L16 2Z"
@@ -18,6 +45,7 @@
           to="/dashboard"
           class="nav-item"
           :class="{ active: $route.path === '/dashboard' }"
+          @click="sidebarOpen = false"
         >
           <svg
             width="20"
@@ -34,7 +62,7 @@
           </svg>
           Дашборд
         </router-link>
-        <router-link to="/map" class="nav-item" :class="{ active: $route.path === '/map' }">
+        <router-link to="/map" class="nav-item" :class="{ active: $route.path === '/map' }" @click="sidebarOpen = false">
           <svg
             width="20"
             height="20"
@@ -52,6 +80,7 @@
           to="/create-request"
           class="nav-item"
           :class="{ active: $route.path === '/create-request' }"
+          @click="sidebarOpen = false"
         >
           <svg
             width="20"
@@ -69,6 +98,7 @@
           to="/volunteers"
           class="nav-item"
           :class="{ active: $route.path === '/volunteers' }"
+          @click="sidebarOpen = false"
         >
           <svg
             width="20"
@@ -84,7 +114,7 @@
           Волонтёры
           <span class="badge">3</span>
         </router-link>
-        <router-link to="/profile" class="nav-item" :class="{ active: $route.path === '/profile' }">
+        <router-link to="/profile" class="nav-item" :class="{ active: $route.path === '/profile' }" @click="sidebarOpen = false">
           <svg
             width="20"
             height="20"
@@ -111,11 +141,13 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth.js'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const sidebarOpen = ref(false)
 
 function logout() {
   authStore.logout()

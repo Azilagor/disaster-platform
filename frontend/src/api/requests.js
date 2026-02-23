@@ -3,6 +3,16 @@ import { fetchWithAuth, parseJsonResponse } from './client.js'
 const REQUESTS = '/requests'
 
 /**
+ * Мои заявки (созданные текущим пользователем).
+ * Бэк: GET /requests/my → 200 [ Request, ... ]
+ * @returns {Promise<Array<{ id, title, description, priority, status, address, district, problemType, createdAt, ... }>>}
+ */
+export async function getMyRequests() {
+  const res = await fetchWithAuth(`${REQUESTS}/my`)
+  return parseJsonResponse(res)
+}
+
+/**
  * Создать запрос о помощи.
  * Бэк: POST /requests/ → 201 { message, request? }
  * Обязательные: problemType, title, description, priority, address, district.
