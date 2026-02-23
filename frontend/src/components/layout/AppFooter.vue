@@ -17,7 +17,7 @@
           <ul>
             <li><a href="#features">Возможности</a></li>
             <li><a href="#how-it-works">Как работает</a></li>
-            <li><router-link to="/login">Регистрация</router-link></li>
+            <li><router-link to="/register">Регистрация</router-link></li>
           </ul>
         </div>
         <div class="footer-col">

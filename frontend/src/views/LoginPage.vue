@@ -32,9 +32,11 @@
                 id="login-email" 
                 v-model="loginForm.email"
                 class="form-control" 
+                :class="{ 'is-invalid': loginErrors.email }"
                 placeholder="your@email.com"
                 required
               >
+              <span v-if="loginErrors.email" class="form-error">{{ loginErrors.email }}</span>
             </div>
 
             <div class="form-group">
@@ -44,9 +46,11 @@
                 id="login-password" 
                 v-model="loginForm.password"
                 class="form-control" 
+                :class="{ 'is-invalid': loginErrors.password }"
                 placeholder="••••••••"
                 required
               >
+              <span v-if="loginErrors.password" class="form-error">{{ loginErrors.password }}</span>
             </div>
 
             <div class="form-options">
@@ -83,9 +87,11 @@
                   id="reg-firstname" 
                   v-model="registerForm.firstName"
                   class="form-control" 
+                  :class="{ 'is-invalid': registerErrors.firstName }"
                   placeholder="Иван"
                   required
                 >
+                <span v-if="registerErrors.firstName" class="form-error">{{ registerErrors.firstName }}</span>
               </div>
               <div class="form-group">
                 <label for="reg-lastname">Фамилия</label>
@@ -94,9 +100,11 @@
                   id="reg-lastname" 
                   v-model="registerForm.lastName"
                   class="form-control" 
+                  :class="{ 'is-invalid': registerErrors.lastName }"
                   placeholder="Иванов"
                   required
                 >
+                <span v-if="registerErrors.lastName" class="form-error">{{ registerErrors.lastName }}</span>
               </div>
             </div>
 
@@ -107,9 +115,11 @@
                 id="reg-email" 
                 v-model="registerForm.email"
                 class="form-control" 
+                :class="{ 'is-invalid': registerErrors.email }"
                 placeholder="your@email.com"
                 required
               >
+              <span v-if="registerErrors.email" class="form-error">{{ registerErrors.email }}</span>
             </div>
 
             <div class="form-group">
@@ -119,9 +129,11 @@
                 id="reg-phone" 
                 v-model="registerForm.phone"
                 class="form-control" 
+                :class="{ 'is-invalid': registerErrors.phone }"
                 placeholder="+7 (___) ___-__-__"
                 required
               >
+              <span v-if="registerErrors.phone" class="form-error">{{ registerErrors.phone }}</span>
             </div>
 
             <div class="form-group">
@@ -131,9 +143,11 @@
                 id="reg-password" 
                 v-model="registerForm.password"
                 class="form-control" 
+                :class="{ 'is-invalid': registerErrors.password }"
                 placeholder="••••••••"
                 required
               >
+              <span v-if="registerErrors.password" class="form-error">{{ registerErrors.password }}</span>
             </div>
 
             <div class="form-group">
@@ -143,9 +157,11 @@
                 id="reg-password-confirm" 
                 v-model="registerForm.passwordConfirm"
                 class="form-control" 
+                :class="{ 'is-invalid': registerErrors.passwordConfirm }"
                 placeholder="••••••••"
                 required
               >
+              <span v-if="registerErrors.passwordConfirm" class="form-error">{{ registerErrors.passwordConfirm }}</span>
             </div>
 
             <div class="form-group">
@@ -154,6 +170,7 @@
                 id="reg-role" 
                 v-model="registerForm.role"
                 class="form-control"
+                :class="{ 'is-invalid': registerErrors.role }"
                 required
               >
                 <option value="">Выберите роль</option>
@@ -161,6 +178,7 @@
                 <option value="volunteer">Волонтёр</option>
                 <option value="coordinator">Координатор</option>
               </select>
+              <span v-if="registerErrors.role" class="form-error">{{ registerErrors.role }}</span>
             </div>
 
             <div class="form-group">
@@ -219,16 +237,29 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import * as authApi from '../api/auth.js'
 import { withLoading } from '../stores/loading.js'
+import {
+  trimValue,
+  normalizeEmail,
+  validateEmail,
+  validatePassword,
+  validatePasswordMatch,
+  validateRegistrationForm
+} from '../utils/validation.js'
 
 const router = useRouter()
 const route = useRoute()
-const isLoginMode = ref(true)
+// Форма зависит от маршрута: /register — регистрация, /login — вход
+const isLoginMode = computed(() => route.path !== '/register')
 const errorMessage = ref('')
 const successMessage = ref(route.query.verified ? 'Почта подтверждена. Войдите в систему.' : '')
+
+// Ошибки валидации под полями
+const loginErrors = ref({})
+const registerErrors = ref({})
 
 // Login form data
 const loginForm = ref({
@@ -249,19 +280,38 @@ const registerForm = ref({
   agreeTerms: false
 })
 
-// Toggle between login and register
+// Переключение между входом и регистрацией (меняем URL)
 const toggleMode = () => {
-  isLoginMode.value = !isLoginMode.value
   errorMessage.value = ''
-  successMessage.value = ''
+  loginErrors.value = {}
+  registerErrors.value = {}
+  if (route.path === '/register') {
+    router.push('/login')
+  } else {
+    successMessage.value = ''
+    router.push('/register')
+  }
 }
 
 // Handle login
 const handleLogin = async () => {
   errorMessage.value = ''
+  const email = normalizeEmail(loginForm.value.email)
+  const password = trimValue(loginForm.value.password)
+  loginForm.value.email = email
+  loginForm.value.password = password
+
+  const emailErr = validateEmail(email)
+  const passwordErr = password ? null : 'Пароль обязателен'
+  loginErrors.value = {
+    email: emailErr || undefined,
+    password: passwordErr || undefined
+  }
+  if (emailErr || passwordErr) return
+
   try {
     const { user, token } = await withLoading(() =>
-      authApi.login(loginForm.value.email, loginForm.value.password)
+      authApi.login(email, password)
     )
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(user))
@@ -278,20 +328,30 @@ const handleLogin = async () => {
 
 // Handle registration
 const handleRegister = async () => {
-  if (registerForm.value.password !== registerForm.value.passwordConfirm) {
-    errorMessage.value = 'Пароли не совпадают'
-    return
-  }
   errorMessage.value = ''
+  const form = registerForm.value
+  // Нормализация: убираем пробелы, email обрезаем по домену
+  form.firstName = trimValue(form.firstName)
+  form.lastName = trimValue(form.lastName)
+  form.email = normalizeEmail(form.email)
+  form.phone = trimValue(form.phone)
+  form.password = trimValue(form.password)
+  form.passwordConfirm = trimValue(form.passwordConfirm)
+  form.role = trimValue(form.role)
+
+  const { valid, errors } = validateRegistrationForm(form)
+  registerErrors.value = errors
+  if (!valid) return
+
   try {
     const { message } = await withLoading(() =>
       authApi.register({
-        firstName: registerForm.value.firstName,
-        lastName: registerForm.value.lastName,
-        email: registerForm.value.email,
-        phone: registerForm.value.phone,
-        password: registerForm.value.password,
-        role: registerForm.value.role || 'user'
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        role: form.role || 'user'
       })
     )
     successMessage.value = message || 'Регистрация успешна. Проверьте почту для подтверждения.'

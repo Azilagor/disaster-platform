@@ -9,13 +9,15 @@ export function getStoredToken() {
 
 /**
  * Запрос с автоматическим добавлением Bearer токена.
+ * В конец URL добавляется слеш (требование бэкенда).
  * @param {string} url - полный URL или путь относительно API_BASE_URL
  * @param {RequestInit} options - опции fetch
  * @param {boolean} useFullUrl - если true, url считается полным
  */
 export async function fetchWithAuth(url, options = {}, useFullUrl = false) {
   const token = getStoredToken()
-  const fullUrl = useFullUrl ? url : `${API_BASE_URL}${url}`
+  const path = useFullUrl ? url : `${API_BASE_URL}${url}`
+  const fullUrl = path.endsWith('/') ? path : `${path}/`
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,

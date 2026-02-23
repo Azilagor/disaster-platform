@@ -16,7 +16,7 @@
         </ul>
         <div class="nav-actions">
           <router-link to="/login" class="btn btn-secondary">Вход</router-link>
-          <router-link to="/login" class="btn btn-primary">Регистрация</router-link>
+          <router-link to="/register" class="btn btn-primary">Регистрация</router-link>
         </div>
       </nav>
     </div>
