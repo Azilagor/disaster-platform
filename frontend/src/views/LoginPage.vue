@@ -71,6 +71,41 @@
           </div>
         </div>
 
+        <!-- Forgot Password Modal -->
+        <div v-if="showForgotModal" class="modal-overlay" @click.self="closeForgotModal">
+          <div class="modal forgot-modal">
+            <div class="modal-header">
+              <h2>Восстановление пароля</h2>
+              <button type="button" class="modal-close" aria-label="Закрыть" @click="closeForgotModal">&times;</button>
+            </div>
+            <p class="modal-desc">Введите email вашего аккаунта — мы отправим ссылку для сброса пароля.</p>
+            <div v-if="forgotError" class="auth-message auth-message-error">{{ forgotError }}</div>
+            <div v-if="forgotSuccess" class="auth-message auth-message-success">{{ forgotSuccess }}</div>
+            <form v-if="!forgotSuccess" class="auth-form" @submit.prevent="handleForgotPassword">
+              <div class="form-group">
+                <label for="forgot-email">Email</label>
+                <input
+                  type="email"
+                  id="forgot-email"
+                  v-model="forgotForm.email"
+                  class="form-control"
+                  :class="{ 'is-invalid': forgotErrors.email }"
+                  placeholder="your@email.com"
+                  required
+                >
+                <span v-if="forgotErrors.email" class="form-error">{{ forgotErrors.email }}</span>
+              </div>
+              <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" @click="closeForgotModal">Отмена</button>
+                <button type="submit" class="btn btn-primary">Отправить</button>
+              </div>
+            </form>
+            <div v-else class="modal-actions">
+              <button type="button" class="btn btn-primary" @click="closeForgotModal">Закрыть</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Registration Form -->
         <div class="auth-form-wrapper" v-show="!isLoginMode">
           <div class="form-header">
@@ -362,9 +397,38 @@ const handleRegister = async () => {
   }
 }
 
-// Show forgot password
+// Forgot password modal
+const showForgotModal = ref(false)
+const forgotForm = ref({ email: '' })
+const forgotErrors = ref({})
+const forgotError = ref('')
+const forgotSuccess = ref('')
+
 const showForgotPassword = () => {
-  alert('Функция восстановления пароля будет реализована позже')
+  forgotForm.value = { email: loginForm.value.email || '' }
+  forgotErrors.value = {}
+  forgotError.value = ''
+  forgotSuccess.value = ''
+  showForgotModal.value = true
+}
+
+const closeForgotModal = () => {
+  showForgotModal.value = false
+}
+
+const handleForgotPassword = async () => {
+  forgotError.value = ''
+  const email = normalizeEmail(forgotForm.value.email)
+  forgotForm.value.email = email
+  const emailErr = validateEmail(email)
+  forgotErrors.value = { email: emailErr || undefined }
+  if (emailErr) return
+  try {
+    const { message } = await withLoading(() => authApi.forgotPassword(email))
+    forgotSuccess.value = message || 'Проверьте почту — мы отправили ссылку для сброса пароля.'
+  } catch (error) {
+    forgotError.value = error.message || 'Не удалось отправить письмо. Проверьте email или попробуйте позже.'
+  }
 }
 </script>
 
@@ -374,6 +438,62 @@ const showForgotPassword = () => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+/* Forgot password modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+.modal {
+  background: var(--auth-bg, #fff);
+  border-radius: 12px;
+  max-width: 420px;
+  width: 100%;
+  padding: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+  padding: 0 0.25rem;
+}
+.modal-close:hover {
+  color: #1a1a1a;
+}
+.modal-desc {
+  margin: 0 0 1rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+.modal .auth-form {
+  margin-bottom: 0;
+}
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
 }
 
 @media (max-width: 768px) {
