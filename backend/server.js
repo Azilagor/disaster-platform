@@ -8,11 +8,16 @@ const cors = require("cors");
 dotenv.config();
 
 const app = express();
+
+app.use(cors({
+  origin: 'http://localhost:5173', 
+  credentials: true                  
+}))
 const PORT = process.env.PORT || 3000;
 const helmet = require("helmet");
 app.use(helmet());
 
-app.use(cors());
+
 app.use(express.json());
 
 
