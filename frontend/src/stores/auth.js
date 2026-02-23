@@ -5,7 +5,7 @@ import * as authApi from '../api/auth.js'
 const ROLE_LABELS = {
   user: 'Пользователь',
   volunteer: 'Волонтёр',
-  coordinator: 'Координатор'
+  coordinator: 'Координатор',
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -29,9 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
     return [firstName, lastName].filter(Boolean).join(' ') || 'Пользователь'
   })
 
-  const userRole = computed(() =>
-    (user.value && ROLE_LABELS[user.value.role]) || 'Пользователь'
-  )
+  const userRole = computed(() => (user.value && ROLE_LABELS[user.value.role]) || 'Пользователь')
 
   const userAvatar = computed(() =>
     user.value?.email
@@ -103,6 +101,6 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     setAuth,
     fetchUser,
-    init
+    init,
   }
 })

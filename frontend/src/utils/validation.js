@@ -1,4 +1,8 @@
-import { ALLOWED_PROBLEM_TYPES, ALLOWED_PRIORITIES, ALLOWED_DISTRICTS } from '../constants/requests.js'
+import {
+  ALLOWED_PROBLEM_TYPES,
+  ALLOWED_PRIORITIES,
+  ALLOWED_DISTRICTS,
+} from '../constants/requests.js'
 
 /**
  * Нормализация: убирает лишние пробелы по краям
@@ -105,7 +109,7 @@ export function validateRegistrationForm(formData) {
   if (!trimValue(formData.role)) errors.role = 'Выберите роль'
   return {
     valid: Object.keys(errors).length === 0,
-    errors
+    errors,
   }
 }
 
