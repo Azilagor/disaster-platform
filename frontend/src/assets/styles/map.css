@@ -91,6 +91,7 @@
 
 .status-new {
     background: var(--primary);
+    color: #fff;
 }
 
 .status-in-progress {
