@@ -1,4 +1,4 @@
-# dependenciesff
+# dependencies
 node_modules
 
 # env files
@@ -21,10 +21,6 @@ Thumbs.db
 dist
 build
 
-# prisma
-prisma/dev.db
-prisma/dev.db-journal
-
 # coverage
 coverage
 
@@ -36,4 +32,9 @@ coverage
 tmp
 temp
 
+# --- backend (root): do not track ---
+/package.json
+/package-lock.json
+/prisma/
+/prisma.config.ts
 /generated/prisma
