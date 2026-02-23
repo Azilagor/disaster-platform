@@ -5,9 +5,11 @@ const REQUESTS = '/requests'
 /**
  * Создать запрос о помощи.
  * Бэк: POST /requests/ → 201 { message, request? }
- * @param {Object} data - { problemType, address, description, priority, peopleCount, contactName, contactPhone, contactComment? }
+ * Обязательные: problemType, title, description, priority, address, district.
+ * @param {Object} data - { problemType, title, description, priority, address, district, peopleCount?, contactName?, contactPhone?, contactComment? }
  * @param {string} data.problemType - тип (MEDICAL, FOOD, ...)
  * @param {string} data.priority - приоритет (LOW, MEDIUM, HIGH, CRITICAL)
+ * @param {string} data.district - район (ALMALYNSKIY, AUEZOVSKIY, ...)
  * @returns {Promise<{ message, request }>}
  */
 export async function createRequest(data) {
@@ -15,9 +17,11 @@ export async function createRequest(data) {
     method: 'POST',
     body: JSON.stringify({
       problemType: data.problemType,
-      address: data.address,
+      title: data.title,
       description: data.description,
       priority: data.priority,
+      address: data.address,
+      district: data.district,
       peopleCount: data.peopleCount ?? 1,
       contactName: data.contactName,
       contactPhone: data.contactPhone,

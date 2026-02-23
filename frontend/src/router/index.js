@@ -23,16 +23,6 @@ const routes = [
     component: () => import('../views/ResetPasswordPage.vue'),
   },
   {
-    path: '/map',
-    name: 'Map',
-    component: () => import('../views/MapPage.vue'),
-  },
-  {
-    path: '/create-request',
-    name: 'CreateRequest',
-    component: () => import('../views/CreateRequestPage.vue'),
-  },
-  {
     path: '/',
     component: () => import('../components/layout/AuthenticatedLayout.vue'),
     meta: { requiresAuth: true },
@@ -41,6 +31,16 @@ const routes = [
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('../views/DashboardPage.vue'),
+      },
+      {
+        path: 'map',
+        name: 'Map',
+        component: () => import('../views/MapPage.vue'),
+      },
+      {
+        path: 'create-request',
+        name: 'CreateRequest',
+        component: () => import('../views/CreateRequestPage.vue'),
       },
       {
         path: 'volunteers',
