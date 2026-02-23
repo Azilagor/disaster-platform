@@ -11,12 +11,7 @@ export const ALLOWED_PROBLEM_TYPES = [
   'PSYCHOLOGICAL',
 ]
 
-export const ALLOWED_PRIORITIES = [
-  'CRITICAL',
-  'HIGH',
-  'MEDIUM',
-  'LOW',
-]
+export const ALLOWED_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 
 export const ALLOWED_DISTRICTS = [
   'ALMALYNSKIY',

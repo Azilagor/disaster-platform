@@ -5,8 +5,11 @@
         <div class="auth-header">
           <router-link to="/" class="logo">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path d="M16 2L4 9V16C4 23.732 9.268 28 16 30C22.732 28 28 23.732 28 16V9L16 2Z" fill="#2563EB"/>
-              <path d="M16 10V22M10 16H22" stroke="white" stroke-width="2" stroke-linecap="round"/>
+              <path
+                d="M16 2L4 9V16C4 23.732 9.268 28 16 30C22.732 28 28 23.732 28 16V9L16 2Z"
+                fill="#2563EB"
+              />
+              <path d="M16 10V22M10 16H22" stroke="white" stroke-width="2" stroke-linecap="round" />
             </svg>
             <span>DisasterHelp</span>
           </router-link>
@@ -28,35 +31,39 @@
           <div v-else class="auth-form-wrapper">
             <h1>Новый пароль</h1>
             <p>Введите новый пароль для вашего аккаунта.</p>
-            <div v-if="errorMessage" class="auth-message auth-message-error">{{ errorMessage }}</div>
+            <div v-if="errorMessage" class="auth-message auth-message-error">
+              {{ errorMessage }}
+            </div>
             <form class="auth-form" @submit.prevent="handleSubmit">
               <div class="form-group">
                 <label for="new-password">Новый пароль</label>
                 <input
-                  type="password"
                   id="new-password"
                   v-model="form.password"
+                  type="password"
                   class="form-control"
                   :class="{ 'is-invalid': errors.password }"
                   placeholder="••••••••"
                   required
                   autocomplete="new-password"
-                >
+                />
                 <span v-if="errors.password" class="form-error">{{ errors.password }}</span>
               </div>
               <div class="form-group">
                 <label for="new-password-confirm">Повторите пароль</label>
                 <input
-                  type="password"
                   id="new-password-confirm"
                   v-model="form.passwordConfirm"
+                  type="password"
                   class="form-control"
                   :class="{ 'is-invalid': errors.passwordConfirm }"
                   placeholder="••••••••"
                   required
                   autocomplete="new-password"
-                >
-                <span v-if="errors.passwordConfirm" class="form-error">{{ errors.passwordConfirm }}</span>
+                />
+                <span v-if="errors.passwordConfirm" class="form-error">{{
+                  errors.passwordConfirm
+                }}</span>
               </div>
               <button type="submit" class="btn btn-primary btn-block">Сохранить пароль</button>
             </form>
@@ -100,14 +107,12 @@ const handleSubmit = async () => {
   const confirmErr = validatePasswordMatch(password, passwordConfirm)
   errors.value = {
     password: passwordErr || undefined,
-    passwordConfirm: confirmErr || undefined
+    passwordConfirm: confirmErr || undefined,
   }
   if (passwordErr || confirmErr) return
 
   try {
-    const result = await withLoading(() =>
-      authApi.resetPassword(tokenFromQuery.value, password)
-    )
+    const result = await withLoading(() => authApi.resetPassword(tokenFromQuery.value, password))
     if (result.user && result.token) {
       authStore.login({ user: result.user, token: result.token })
       success.value = 'Пароль успешно изменён.'
