@@ -106,9 +106,10 @@
               <input type="checkbox" v-model="form.agreeData" required />
               <span>Я согласен на обработку персональных данных для координации помощи</span>
             </label>
+            <div v-if="submitError" class="auth-message auth-message-error">{{ submitError }}</div>
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" @click="currentStep = 2">Назад</button>
-              <button type="submit" class="btn btn-primary" @click.prevent="submitRequest">Отправить запрос</button>
+              <button type="submit" class="btn btn-primary" @click.prevent="submitRequest" :disabled="submitting">Отправить запрос</button>
             </div>
           </div>
         </div>
@@ -123,9 +124,13 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '../components/layout/AppHeader.vue'
 import AppFooter from '../components/layout/AppFooter.vue'
+import { createRequest } from '../api/requests.js'
+import { withLoading } from '../stores/loading.js'
 
 const router = useRouter()
 const currentStep = ref(1)
+const submitting = ref(false)
+const submitError = ref('')
 const form = reactive({
   problemType: '',
   address: '',
@@ -147,10 +152,28 @@ const problemTypes = [
   { id: 'psychological', title: 'Психологическая помощь', description: 'Поддержка, консультация', iconClass: 'psychological' }
 ]
 
-function submitRequest() {
+async function submitRequest() {
   if (!form.agreeData) return
-  // TODO: вызов API
-  alert('Запрос отправлен. Мы покажем его на карте и уведомим волонтёров.')
-  router.push('/map')
+  submitError.value = ''
+  submitting.value = true
+  try {
+    await withLoading(() =>
+      createRequest({
+        problemType: form.problemType.toUpperCase(),
+        address: form.address?.trim() ?? '',
+        description: form.description?.trim() ?? '',
+        priority: form.priority.toUpperCase(),
+        peopleCount: form.peopleCount || 1,
+        contactName: form.contactName?.trim() ?? '',
+        contactPhone: form.contactPhone?.trim() ?? '',
+        contactComment: form.contactComment?.trim() || undefined
+      })
+    )
+    router.push('/map')
+  } catch (error) {
+    submitError.value = error.message || 'Не удалось отправить запрос. Попробуйте позже.'
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
