@@ -8,7 +8,7 @@
   "host": "localhost:4999",
   "basePath": "/api",
   "schemes": [
-  "https","http"
+  "https"
   ],
   "paths": {
     "/api-docs/swagger.json": {
