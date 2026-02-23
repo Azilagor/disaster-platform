@@ -55,10 +55,10 @@ app.use(
 
 
 const authRoutes = require("./src/routes/auth.routes"); 
-app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
 
 const requestRoutes = require("./src/routes/requests.routes");
-app.use("/api/requests", requestRoutes);
+app.use("/requests", requestRoutes);
 
 
 app.get("/", (req, res) => {
