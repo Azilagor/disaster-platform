@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '../stores/auth.js'
 
 const routes = [
   {
@@ -17,12 +18,6 @@ const routes = [
     component: () => import('../views/LoginPage.vue')
   },
   {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: () => import('../views/DashboardPage.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
     path: '/map',
     name: 'Map',
     component: () => import('../views/MapPage.vue')
@@ -33,16 +28,26 @@ const routes = [
     component: () => import('../views/CreateRequestPage.vue')
   },
   {
-    path: '/volunteers',
-    name: 'Volunteers',
-    component: () => import('../views/VolunteersPage.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/profile',
-    name: 'Profile',
-    component: () => import('../views/ProfilePage.vue'),
-    meta: { requiresAuth: true }
+    path: '/',
+    component: () => import('../components/layout/AuthenticatedLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: 'dashboard',
+        name: 'Dashboard',
+        component: () => import('../views/DashboardPage.vue')
+      },
+      {
+        path: 'volunteers',
+        name: 'Volunteers',
+        component: () => import('../views/VolunteersPage.vue')
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('../views/ProfilePage.vue')
+      }
+    ]
   }
 ]
 
@@ -51,12 +56,10 @@ const router = createRouter({
   routes
 })
 
-// Route guard для защищённых страниц (позже настроим)
 router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  const isAuthenticated = localStorage.getItem('token') // Временно
-  
-  if (requiresAuth && !isAuthenticated) {
+  const authStore = useAuthStore()
+  if (requiresAuth && !authStore.isAuthenticated) {
     next('/login')
   } else {
     next()

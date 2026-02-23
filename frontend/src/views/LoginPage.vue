@@ -241,6 +241,7 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import * as authApi from '../api/auth.js'
 import { withLoading } from '../stores/loading.js'
+import { useAuthStore } from '../stores/auth.js'
 import {
   trimValue,
   normalizeEmail,
@@ -252,6 +253,7 @@ import {
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 // Форма зависит от маршрута: /register — регистрация, /login — вход
 const isLoginMode = computed(() => route.path !== '/register')
 const errorMessage = ref('')
@@ -313,8 +315,7 @@ const handleLogin = async () => {
     const { user, token } = await withLoading(() =>
       authApi.login(email, password)
     )
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(user))
+    authStore.login({ user, token })
     if (loginForm.value.remember) {
       localStorage.setItem('remember', '1')
     } else {

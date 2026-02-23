@@ -15,8 +15,18 @@
           <li><a href="#about">О платформе</a></li>
         </ul>
         <div class="nav-actions">
-          <router-link to="/login" class="btn btn-secondary">Вход</router-link>
-          <router-link to="/register" class="btn btn-primary">Регистрация</router-link>
+          <template v-if="authStore.isAuthenticated">
+            <router-link to="/profile" class="user-menu-link">
+              <img v-if="authStore.userAvatar" :src="authStore.userAvatar" alt="" class="user-avatar" width="32" height="32" />
+              <span class="user-name">{{ authStore.userName }}</span>
+            </router-link>
+            <router-link to="/profile" class="btn btn-secondary">Профиль</router-link>
+            <button type="button" class="btn btn-secondary" @click="authStore.logout(); $router.push('/')">Выйти</button>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="btn btn-secondary">Вход</router-link>
+            <router-link to="/register" class="btn btn-primary">Регистрация</router-link>
+          </template>
         </div>
       </nav>
     </div>
@@ -24,4 +34,31 @@
 </template>
 
 <script setup>
+import { useAuthStore } from '../../stores/auth.js'
+
+const authStore = useAuthStore()
 </script>
+
+<style scoped>
+.user-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--gray-700);
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-lg);
+  transition: var(--transition);
+}
+.user-menu-link:hover {
+  background: var(--gray-100);
+  color: var(--gray-900);
+}
+.user-avatar {
+  border-radius: 50%;
+}
+.user-name {
+  font-size: var(--font-size-sm);
+}
+</style>
