@@ -1,64 +1,25 @@
 <template>
   <div class="profile-page">
-    <div class="dashboard-layout">
-      <aside class="sidebar">
-        <div class="sidebar-header">
-          <router-link to="/" class="logo">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path d="M16 2L4 9V16C4 23.732 9.268 28 16 30C22.732 28 28 23.732 28 16V9L16 2Z" fill="#2563EB"/>
-              <path d="M16 10V22M10 16H22" stroke="white" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span>DisasterHelp</span>
-          </router-link>
-        </div>
-        <nav class="sidebar-nav">
-          <router-link to="/dashboard" class="nav-item" :class="{ active: $route.path === '/dashboard' }">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg>
-            Дашборд
-          </router-link>
-          <router-link to="/map" class="nav-item" :class="{ active: $route.path === '/map' }">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2C6.13 2 3 5.13 3 9c0 4.17 7 9 7 9s7-4.83 7-9c0-3.87-3.13-7-7-7z"/><circle cx="10" cy="9" r="2.5"/></svg>
-            Карта
-          </router-link>
-          <router-link to="/create-request" class="nav-item" :class="{ active: $route.path === '/create-request' }">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v16M2 10h16"/></svg>
-            Создать запрос
-          </router-link>
-          <router-link to="/volunteers" class="nav-item" :class="{ active: $route.path === '/volunteers' }">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 19v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="5" r="4"/></svg>
-            Волонтёры
-          </router-link>
-          <router-link to="/profile" class="nav-item" :class="{ active: $route.path === '/profile' }">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="7" r="4"/><path d="M3 20c0-4 3-7 7-7s7 3 7 7"/></svg>
-            Профиль
-          </router-link>
-        </nav>
-        <div class="sidebar-footer">
-          <a href="#" class="nav-item" @click.prevent="logout">Выйти</a>
-        </div>
-      </aside>
-
-      <main class="main-content">
-        <div class="profile-header">
+    <div class="profile-header">
           <div class="profile-cover"></div>
           <div class="profile-info-section">
             <div class="profile-avatar-wrapper">
-              <img :src="userAvatar" alt="" class="profile-avatar" width="120" height="120" />
+              <img v-if="authStore.userAvatar" :src="authStore.userAvatar" alt="" class="profile-avatar" width="120" height="120" />
               <button type="button" class="avatar-upload-btn" title="Сменить фото">
                 <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2L20 6L16 10"/><path d="M4 18v-4M4 14L2 16l-2-2"/><circle cx="10" cy="10" r="8"/></svg>
               </button>
             </div>
             <div class="profile-header-info">
-              <h1>{{ userName }}</h1>
-              <p class="profile-role">{{ userRole }}</p>
+              <h1>{{ authStore.userName }}</h1>
+              <p class="profile-role">{{ authStore.userRole }}</p>
               <div class="profile-meta">
                 <span class="meta-badge">
                   <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"><path d="M4 4h12v12H4z"/><path d="M16 8l-4 4-2-2-4 4"/></svg>
-                  {{ user.email }}
+                  {{ authStore.user?.email ?? '—' }}
                 </span>
                 <span class="meta-badge">
                   <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"><path d="M18 15v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2"/><path d="M10 2v12M4 8l6 6 6-6"/></svg>
-                  {{ user.phone || '—' }}
+                  {{ authStore.user?.phone || '—' }}
                 </span>
               </div>
               <div class="profile-actions">
@@ -68,7 +29,7 @@
           </div>
         </div>
 
-        <div class="profile-content">
+    <div class="profile-content">
           <div class="profile-left-column">
             <div class="card">
               <div class="card-header">
@@ -77,23 +38,23 @@
               <div class="info-list" style="padding: var(--spacing-xl);">
                 <div class="info-item">
                   <span class="info-label">Имя</span>
-                  <span class="info-value">{{ user.firstName || '—' }}</span>
+                  <span class="info-value">{{ authStore.user?.firstName ?? '—' }}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Фамилия</span>
-                  <span class="info-value">{{ user.lastName || '—' }}</span>
+                  <span class="info-value">{{ authStore.user?.lastName ?? '—' }}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Email</span>
-                  <span class="info-value">{{ user.email || '—' }}</span>
+                  <span class="info-value">{{ authStore.user?.email ?? '—' }}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Телефон</span>
-                  <span class="info-value">{{ user.phone || '—' }}</span>
+                  <span class="info-value">{{ authStore.user?.phone ?? '—' }}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Роль</span>
-                  <span class="info-value">{{ userRole }}</span>
+                  <span class="info-value">{{ authStore.userRole }}</span>
                 </div>
               </div>
             </div>
@@ -164,20 +125,14 @@
             </div>
           </div>
         </div>
-      </main>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { useAuthStore } from '../stores/auth.js'
 
-const router = useRouter()
-const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
-const userName = computed(() => [user.value.firstName, user.value.lastName].filter(Boolean).join(' ') || 'Пользователь')
-const userRole = computed(() => ({ user: 'Пользователь', volunteer: 'Волонтёр', coordinator: 'Координатор' }[user.value.role] || 'Пользователь'))
-const userAvatar = computed(() => 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(user.value.email || 'profile'))
+const authStore = useAuthStore()
 
 const skills = ref(['Первая помощь', 'Логистика'])
 const timeline = ref([
@@ -190,10 +145,4 @@ const achievements = ref([
   { id: 2, title: '10 выполненных заданий', description: 'Выполнил 10 запросов', unlocked: true },
   { id: 3, title: 'Герой недели', description: 'Топ-3 волонтёра за неделю', unlocked: false },
 ])
-
-function logout() {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
-  router.push('/login')
-}
 </script>
