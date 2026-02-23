@@ -1,3 +1,7 @@
+/**
+ * Unit tests for validation helpers.
+ * All password-like values are test-only placeholders and must not be used as real credentials.
+ */
 import { describe, it, expect } from 'vitest'
 import {
   trimValue,
@@ -82,8 +86,8 @@ describe('validatePassword', () => {
     expect(validatePassword('Abcdefgh1')).toBe('Нужен хотя бы один спецсимвол')
   })
   it('returns null for valid password', () => {
-    expect(validatePassword('Abcdefg1!')).toBe(null)
-    expect(validatePassword('Pass123!')).toBe(null)
+    expect(validatePassword('TestPwd1!')).toBe(null)
+    expect(validatePassword('DemoPw2!')).toBe(null)
   })
 })
 
@@ -122,7 +126,7 @@ describe('validateName', () => {
 describe('validatePasswordMatch', () => {
   it('returns error when passwords differ', () => {
     expect(validatePasswordMatch('a', 'b')).toBe('Пароли не совпадают')
-    expect(validatePasswordMatch('Pass1!', 'Pass2!')).toBe('Пароли не совпадают')
+    expect(validatePasswordMatch('FirstPw1!', 'SecondPw2!')).toBe('Пароли не совпадают')
   })
   it('returns null when match', () => {
     expect(validatePasswordMatch('same', 'same')).toBe(null)
@@ -137,8 +141,8 @@ describe('validateRegistrationForm', () => {
       lastName: 'Иванов',
       email: 'ivan@test.com',
       phone: '+7 999 123 45 67',
-      password: 'Password1!',
-      passwordConfirm: 'Password1!',
+      password: 'TestPwd1!',
+      passwordConfirm: 'TestPwd1!',
       role: 'user',
     }
     const result = validateRegistrationForm(form)
