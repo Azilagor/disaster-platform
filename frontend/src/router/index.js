@@ -18,6 +18,11 @@ const routes = [
     component: () => import('../views/LoginPage.vue')
   },
   {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('../views/ResetPasswordPage.vue')
+  },
+  {
     path: '/map',
     name: 'Map',
     component: () => import('../views/MapPage.vue')
@@ -48,6 +53,11 @@ const routes = [
         component: () => import('../views/ProfilePage.vue')
       }
     ]
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('../views/NotFoundPage.vue')
   }
 ]
 

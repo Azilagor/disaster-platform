@@ -14,6 +14,16 @@ export function getStoredToken() {
  * @param {RequestInit} options - опции fetch
  * @param {boolean} useFullUrl - если true, url считается полным
  */
+/**
+ * Очистить сессию (токен и пользователь) и редирект на /login.
+ * Используется при 401 без зависимости от store/router.
+ */
+function clearSessionAndRedirectToLogin() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  window.location.href = '/login'
+}
+
 export async function fetchWithAuth(url, options = {}, useFullUrl = false) {
   const token = getStoredToken()
   const path = useFullUrl ? url : `${API_BASE_URL}${url}`
@@ -23,7 +33,14 @@ export async function fetchWithAuth(url, options = {}, useFullUrl = false) {
     ...options.headers,
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
-  return fetch(fullUrl, { ...options, headers })
+  const response = await fetch(fullUrl, { ...options, headers })
+  if (response.status === 401) {
+    clearSessionAndRedirectToLogin()
+    const error = new Error('Необходима повторная авторизация')
+    error.status = 401
+    throw error
+  }
+  return response
 }
 
 /**
