@@ -28,6 +28,9 @@ lerna-debug.log*
 # Test / coverage
 coverage
 *.lcov
+test-results
+playwright-report
+playwright/.cache
 
 # Editor
 .vscode/*
