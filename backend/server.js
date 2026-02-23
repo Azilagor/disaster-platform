@@ -9,13 +9,16 @@ dotenv.config();
 
 const app = express();
 
+const helmet = require("helmet");
+app.use(helmet());
+
 app.use(cors({
   origin: "*"
 }))
 
 const PORT = process.env.PORT || 3000;
-const helmet = require("helmet");
-app.use(helmet());
+
+
 
 
 app.use(express.json());

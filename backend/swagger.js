@@ -9,7 +9,7 @@ const doc = {
     description: "API documentation",
   },
   host: `localhost:${process.env.PORT || 4001}`,
-  schemes: ["http"],
+  schemes: ["https"],
 };
 
 const outputFile = "./swagger-output.json";
