@@ -2,8 +2,7 @@
   <router-view />
 </template>
 
-<script setup>
-</script>
+<script setup></script>
 
 <style>
 /* Глобальные стили уже импортированы в main.js */
