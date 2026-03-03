@@ -1,6 +1,6 @@
 const swaggerUi = require("swagger-ui-express");
 const swaggerFile = require("./swagger-output.json");
-
+const morgan = require("morgan");
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -8,6 +8,25 @@ const cors = require("cors");
 dotenv.config();
 
 const app = express();
+
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("UNHANDLED REJECTION:", err);
+});
+morgan.token("statusColor", function (req, res) {
+  const status = res.statusCode;
+  if (status >= 500) return "\x1b[31m" + status + "\x1b[0m"; // red
+  if (status >= 400) return "\x1b[33m" + status + "\x1b[0m"; // yellow
+  if (status >= 200) return "\x1b[32m" + status + "\x1b[0m"; // green
+  return status;
+});
+
+app.use(
+  morgan(":method :url :statusColor :response-time ms")
+);
 
 const helmet = require("helmet");
 app.use(helmet());
@@ -78,10 +97,30 @@ app.use((err, req, res, next) => {
 });
 
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log("===================================");
   console.log(`🚀 Сервер запущен на порту ${PORT}`);
   console.log(`🌐 API: http://localhost:${PORT}/`);
-  console.log(`🔐 Auth: http://localhost:${PORT}/auth`);
+  console.log(`🔐 Auth: http://localhost:${PORT}/api/auth`);
+  console.log(`📌 PID: ${process.pid}`);
   console.log("===================================");
 });
+
+
+const shutdown = () => {
+  console.log("\n🛑 Завершение работы сервера...");
+
+  server.close(() => {
+    console.log("✅ Сервер корректно остановлен");
+    process.exit(0);
+  });
+
+
+  setTimeout(() => {
+    console.error("❌ Принудительное завершение");
+    process.exit(1);
+  }, 10000);
+};
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
