@@ -72,18 +72,18 @@ model User {
 }
 
 model Request {
-  id              Int             @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  problemType     ProblemType
-  title           String
-  description     String
-  priority        RequestPriority @default(MEDIUM)
-  status          RequestStatus   @default(NEW)
+  problemType ProblemType
+  title       String
+  description String
+  priority    RequestPriority @default(MEDIUM)
+  status      RequestStatus   @default(NEW)
 
-  peopleCount     Int             @default(1)
-  address         String
-  district        District
-  landmark        String?
+  peopleCount Int      @default(1)
+  address     String
+  district    District
+  landmark    String?
 
   contactName     String
   contactPhone    String
@@ -91,23 +91,21 @@ model Request {
   contactTelegram String?
   additionalInfo  String?
 
-  consentAt       DateTime
+  consentAt DateTime
 
   createdById Int
   createdBy   User @relation("RequestCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
 
+  assignedToId Int?
+  assignedTo   User? @relation("RequestAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
 
-  assignedToId    Int?
-  assignedTo      User? @relation("RequestAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([priority])
   @@index([problemType])
   @@index([district])
-
   @@map("requests")
 }
 
@@ -120,6 +118,7 @@ model EmailVerificationToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([tokenHash])
   @@map("email_verification_tokens")
 }
 
@@ -132,5 +131,6 @@ model PasswordResetToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([tokenHash])
   @@map("password_reset_tokens")
 }

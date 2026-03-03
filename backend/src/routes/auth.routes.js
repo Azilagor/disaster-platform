@@ -6,20 +6,24 @@ const jwt = require("jsonwebtoken");
 const { auth } = require("../middleware/auth");
 const prisma = require("../prismaClient");
 
-
 const normalizeEmail = require("../utils/normalizeEmail");
 const normalizePhone = require("../utils/normalizePhone");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
 
-const { sendVerificationEmail,sendResetPasswordEmail} = require("../services/emailService");
+const {
+  sendVerificationEmail,
+  sendResetPasswordEmail,
+} = require("../services/emailService");
+
 const { generateToken, hashToken } = require("../utils/emailTokens");
 
 const validatePassword = require("../utils/validatePassword");
-const { forgotPasswordLimiter,resetPasswordLimiter } = require("../middleware/rateLimiters")
-
-
+const {
+  forgotPasswordLimiter,
+  resetPasswordLimiter,
+} = require("../middleware/rateLimiters");
 
 const ALLOWED_SELF_REGISTER_ROLES = ["USER", "VOLUNTEER", "COORDINATOR"];
 const ROLE_MAP = {
@@ -59,6 +63,38 @@ router.get("/me", auth, async (req, res) => {
   }
 });
 
+// DELETE /auth/me  (удалить свой аккаунт)
+router.delete("/me", auth, async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ message: "password обязателен" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, passwordHash: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "Пользователь не найден" });
+    }
+
+    const isValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isValid) {
+      return res.status(400).json({ message: "Неверный пароль" });
+    }
+
+    await prisma.user.delete({ where: { id: user.id } });
+
+    return res.json({ message: "Аккаунт удалён" });
+  } catch (err) {
+    console.error("DELETE /me error:", err);
+    return res.status(500).json({ message: "Ошибка сервера" });
+  }
+});
+
 // POST /auth/register
 router.post("/register", async (req, res) => {
   try {
@@ -66,16 +102,13 @@ router.post("/register", async (req, res) => {
 
     if (!firstName || !lastName || !email || !phone || !password) {
       return res.status(400).json({
-        message:
-          "firstName, lastName, email, phone и password обязательные поля",
+        message: "firstName, lastName, email, phone и password обязательные поля",
       });
     }
 
-  
     email = normalizeEmail(email);
     phone = normalizePhone(phone);
 
-  
     const mappedRole = ROLE_MAP[role] || "USER";
     const safeRole = ALLOWED_SELF_REGISTER_ROLES.includes(mappedRole)
       ? mappedRole
@@ -84,8 +117,7 @@ router.post("/register", async (req, res) => {
     const existingEmail = await prisma.user.findUnique({
       where: { email },
       select: { id: true },
-    });
-
+    }); 
     if (existingEmail) {
       return res.status(400).json({ message: "Email уже зарегистрирован" });
     }
@@ -94,7 +126,6 @@ router.post("/register", async (req, res) => {
       where: { phone },
       select: { id: true },
     });
-
     if (existingPhone) {
       return res.status(400).json({ message: "Телефон уже зарегистрирован" });
     }
@@ -112,22 +143,14 @@ router.post("/register", async (req, res) => {
       },
       select: {
         id: true,
-        firstName: true,
-        lastName: true,
         email: true,
-        phone: true,
-        role: true,
         isEmailVerified: true,
-        createdAt: true,
       },
     });
-
-  
 
     const rawToken = generateToken();
     const tokenHash = hashToken(rawToken);
 
-    
     await prisma.emailVerificationToken.upsert({
       where: { userId: user.id },
       update: {
@@ -141,20 +164,13 @@ router.post("/register", async (req, res) => {
       },
     });
 
-    const verifyLink = `${process.env.APP_BASE_URL}/auth/verify-email?token=${rawToken}`;
-
+    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify-email?token=${rawToken}`;
     await sendVerificationEmail(user.email, verifyLink);
 
-
-    const payload = { userId: user.id };
-    const token = jwt.sign(payload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
-    });
-
+  
     return res.status(201).json({
       message: "Регистрация успешна. Проверьте почту для подтверждения.",
-      user,
-      token,
+      email: user.email,
     });
   } catch (err) {
     if (err.code === "P2002") {
@@ -168,13 +184,15 @@ router.post("/register", async (req, res) => {
   }
 });
 
-
+// GET /auth/verify-email?token=...
 router.get("/verify-email", async (req, res) => {
   try {
     const rawToken = req.query.token;
 
     if (!rawToken || typeof rawToken !== "string") {
-      return res.status(400).send("Invalid token");
+      return res.redirect(
+        `${process.env.FRONTEND_LOGIN_URL}?error=invalidToken`
+      );
     }
 
     const tokenHash = hashToken(rawToken);
@@ -184,17 +202,25 @@ router.get("/verify-email", async (req, res) => {
       select: { userId: true, expiresAt: true },
     });
 
+    
     if (!record) {
-      return res.status(400).send("Token invalid");
-    }
+  return res.redirect(
+    `${process.env.FRONTEND_LOGIN_URL}?error=invalidToken`
+  );
+}
 
+    
     if (record.expiresAt < new Date()) {
       await prisma.emailVerificationToken
         .delete({ where: { userId: record.userId } })
         .catch(() => {});
-      return res.status(400).send("Token expired");
+
+      return res.redirect(
+        `${process.env.FRONTEND_LOGIN_URL}?error=tokenExpired`
+      );
     }
 
+ 
     await prisma.$transaction([
       prisma.user.update({
         where: { id: record.userId },
@@ -206,38 +232,46 @@ router.get("/verify-email", async (req, res) => {
     ]);
 
     return res.redirect(
-      `${process.env.FRONTEND_BASE_URL}/login.html?verified=1`
+      `${process.env.FRONTEND_LOGIN_URL}?verified=1`
     );
   } catch (err) {
     console.error("VERIFY EMAIL ERROR:", err);
-    return res.status(500).send("Server error");
+    return res.redirect(
+      `${process.env.FRONTEND_LOGIN_URL}?error=server`
+    );
   }
 });
 
-router.post("/resend-verification", auth, async (req, res) => {
+// POST /auth/resend-verification  
+router.post("/resend-verification", async (req, res) => {
   try {
-    if (req.user.isEmailVerified) {
-      return res.status(400).json({ message: "Email уже подтверждён" });
+    let { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "email обязателен" });
     }
 
+    email = normalizeEmail(email);
 
     const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
+      where: { email },
       select: { id: true, email: true, isEmailVerified: true },
     });
 
-    if (!user) {
-      return res.status(404).json({ message: "Пользователь не найден" });
-    }
+    
+    const safeResponse = {
+      message: "Если аккаунт существует — мы отправили письмо для подтверждения",
+    };
+
+    if (!user) return res.json(safeResponse);
 
     if (user.isEmailVerified) {
       return res.status(400).json({ message: "Email уже подтверждён" });
     }
 
-
     const rawToken = generateToken();
     const tokenHash = hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 час
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     await prisma.emailVerificationToken.upsert({
       where: { userId: user.id },
@@ -248,15 +282,12 @@ router.post("/resend-verification", auth, async (req, res) => {
     const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify-email?token=${rawToken}`;
     await sendVerificationEmail(user.email, verifyLink);
 
-    return res.json({ message: "Письмо отправлено повторно" });
+    return res.json(safeResponse);
   } catch (err) {
     console.error("RESEND VERIFICATION error:", err);
     return res.status(500).json({ message: "Ошибка сервера" });
   }
 });
-
-
-
 
 // POST /auth/login
 router.post("/login", async (req, res) => {
@@ -264,9 +295,7 @@ router.post("/login", async (req, res) => {
     let { email, password } = req.body;
 
     if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "email и пароль обязательные поля" });
+      return res.status(400).json({ message: "email и пароль обязательные поля" });
     }
 
     email = normalizeEmail(email);
@@ -281,6 +310,7 @@ router.post("/login", async (req, res) => {
         phone: true,
         role: true,
         passwordHash: true,
+        isEmailVerified: true, 
       },
     });
 
@@ -291,6 +321,13 @@ router.post("/login", async (req, res) => {
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
       return res.status(400).json({ message: "Неверный email или пароль" });
+    }
+
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        code: "EMAIL_NOT_VERIFIED",
+        message: "Подтвердите email. Мы можем отправить письмо повторно.",
+      });
     }
 
     const payload = { userId: user.id };
@@ -305,6 +342,7 @@ router.post("/login", async (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        isEmailVerified: user.isEmailVerified,
       },
       token,
     });
@@ -340,7 +378,7 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
 
     const rawToken = generateToken();
     const tokenHash = hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); 
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     await prisma.passwordResetToken.upsert({
       where: { userId: user.id },
@@ -349,7 +387,6 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
     });
 
     const resetLink = `${process.env.APP_BASE_URL}/api/auth/reset-password?token=${rawToken}`;
-
     await sendResetPasswordEmail(user.email, resetLink);
 
     return res.json(safeResponse);
@@ -359,20 +396,30 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
   }
 });
 
-
 // GET /auth/reset-password?token=...
 router.get("/reset-password", (req, res) => {
-  const token = req.query.token;
+  try {
+    const token = req.query.token;
 
-  if (!token || typeof token !== "string") {
-    return res.status(400).send("Invalid token");
+   
+    if (!token || typeof token !== "string") {
+      return res.redirect(
+        `${process.env.FRONTEND_BASE_URL}/reset-password?error=invalidToken`
+      );
+    }
+
+    
+    return res.redirect(
+      `${process.env.FRONTEND_BASE_URL}/reset-password?token=${encodeURIComponent(
+        token
+      )}`
+    );
+  } catch (err) {
+    console.error("RESET PASSWORD REDIRECT error:", err);
+    return res.redirect(
+      `${process.env.FRONTEND_BASE_URL}/reset-password?error=server`
+    );
   }
-
-  return res.redirect(
-    `${process.env.FRONTEND_BASE_URL}/reset-password.html?token=${encodeURIComponent(
-      token
-    )}`
-  );
 });
 
 // POST /auth/reset-password
@@ -381,10 +428,9 @@ router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
     const { token, newPassword } = req.body;
 
     if (!token || !newPassword) {
-      return res.status(400).json({
-        message: "token и newPassword обязательны",
-      });
+      return res.status(400).json({ message: "token и newPassword обязательны" });
     }
+
     const pwdError = validatePassword(newPassword);
     if (pwdError) {
       return res.status(400).json({ message: pwdError });
