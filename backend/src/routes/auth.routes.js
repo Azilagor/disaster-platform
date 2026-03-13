@@ -48,6 +48,10 @@ router.get("/me", auth, async (req, res) => {
         phone: true,
         role: true,
         isEmailVerified: true,
+        telegramUsername: true,
+        telegramChatId: true,
+        district: true,
+        avatarUrl: true,
         createdAt: true,
       },
     });
@@ -63,7 +67,87 @@ router.get("/me", auth, async (req, res) => {
   }
 });
 
-// DELETE /auth/me  (удалить свой аккаунт)
+// PUT /auth/me
+router.put("/me", auth, async (req, res) => {
+  try {
+    let { firstName, lastName, phone, telegramUsername, district } = req.body || {};
+
+    const data = {};
+
+    if (firstName !== undefined) {
+      firstName = String(firstName).trim();
+      if (firstName.length < 2) return res.status(400).json({ message: "Имя слишком короткое" });
+      data.firstName = firstName;
+    }
+
+    if (lastName !== undefined) {
+      lastName = String(lastName).trim();
+      if (lastName.length < 2) return res.status(400).json({ message: "Фамилия слишком короткая" });
+      data.lastName = lastName;
+    }
+
+    if (phone !== undefined) {
+      phone = normalizePhone(phone);
+      data.phone = phone;
+    }
+
+    if (telegramUsername !== undefined) {
+      telegramUsername = String(telegramUsername).trim();
+      if (!telegramUsername) {
+        data.telegramUsername = null;
+      } else {
+        telegramUsername = telegramUsername.replace(/^@+/, "");
+        if (!/^[a-zA-Z0-9_]{5,32}$/.test(telegramUsername)) {
+          return res.status(400).json({ message: "Telegram username некорректный (допустимы латиница/цифры/_ , 5-32)" });
+        }
+        data.telegramUsername = telegramUsername;
+      }
+    }
+
+    if (district !== undefined) {
+      if (!district) {
+        data.district = null;
+      } else {
+        const dist = String(district).toUpperCase();
+        const allowed = [
+          "ALMALYNSKIY", "AUEZOVSKIY", "BOSTANDYQ", "MEDEU", "NAURYZBAY", "TURKSIB", "ZHETYSU", "ALATAU"
+        ];
+        if (!allowed.includes(dist)) {
+          return res.status(400).json({ message: "Неверный район" });
+        }
+        data.district = dist;
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        role: true,
+        isEmailVerified: true,
+        telegramUsername: true,
+        district: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
+    });
+
+    return res.json({ message: "Профиль обновлён", user: updated });
+  } catch (err) {
+    if (err.code === "P2002") {
+      return res.status(400).json({ message: "Телефон уже используется" });
+    }
+    console.error("PUT /me error:", err);
+    return res.status(500).json({ message: "Ошибка сервера" });
+  }
+});
+
+// DELETE /auth/me
 router.delete("/me", auth, async (req, res) => {
   try {
     const { password } = req.body;
@@ -86,7 +170,10 @@ router.delete("/me", auth, async (req, res) => {
       return res.status(400).json({ message: "Неверный пароль" });
     }
 
-    await prisma.user.delete({ where: { id: user.id } });
+    await prisma.$transaction([
+      prisma.requestVolunteer.deleteMany({ where: { volunteerId: user.id } }),
+      prisma.user.delete({ where: { id: user.id } }),
+    ]);
 
     return res.json({ message: "Аккаунт удалён" });
   } catch (err) {
@@ -117,7 +204,7 @@ router.post("/register", async (req, res) => {
     const existingEmail = await prisma.user.findUnique({
       where: { email },
       select: { id: true },
-    }); 
+    });
     if (existingEmail) {
       return res.status(400).json({ message: "Email уже зарегистрирован" });
     }
@@ -167,7 +254,6 @@ router.post("/register", async (req, res) => {
     const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify-email?token=${rawToken}`;
     await sendVerificationEmail(user.email, verifyLink);
 
-  
     return res.status(201).json({
       message: "Регистрация успешна. Проверьте почту для подтверждения.",
       email: user.email,
@@ -184,7 +270,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// GET /auth/verify-email?token=...
+// GET /auth/verify-email
 router.get("/verify-email", async (req, res) => {
   try {
     const rawToken = req.query.token;
@@ -202,14 +288,12 @@ router.get("/verify-email", async (req, res) => {
       select: { userId: true, expiresAt: true },
     });
 
-    
     if (!record) {
-  return res.redirect(
-    `${process.env.FRONTEND_LOGIN_URL}?error=invalidToken`
-  );
-}
+      return res.redirect(
+        `${process.env.FRONTEND_LOGIN_URL}?error=invalidToken`
+      );
+    }
 
-    
     if (record.expiresAt < new Date()) {
       await prisma.emailVerificationToken
         .delete({ where: { userId: record.userId } })
@@ -220,7 +304,6 @@ router.get("/verify-email", async (req, res) => {
       );
     }
 
- 
     await prisma.$transaction([
       prisma.user.update({
         where: { id: record.userId },
@@ -242,7 +325,7 @@ router.get("/verify-email", async (req, res) => {
   }
 });
 
-// POST /auth/resend-verification  
+// POST /auth/resend-verification
 router.post("/resend-verification", async (req, res) => {
   try {
     let { email } = req.body;
@@ -258,7 +341,6 @@ router.post("/resend-verification", async (req, res) => {
       select: { id: true, email: true, isEmailVerified: true },
     });
 
-    
     const safeResponse = {
       message: "Если аккаунт существует — мы отправили письмо для подтверждения",
     };
@@ -310,7 +392,7 @@ router.post("/login", async (req, res) => {
         phone: true,
         role: true,
         passwordHash: true,
-        isEmailVerified: true, 
+        isEmailVerified: true,
       },
     });
 
@@ -396,19 +478,17 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
   }
 });
 
-// GET /auth/reset-password?token=...
+// GET /auth/reset-password
 router.get("/reset-password", (req, res) => {
   try {
     const token = req.query.token;
 
-   
     if (!token || typeof token !== "string") {
       return res.redirect(
         `${process.env.FRONTEND_BASE_URL}/reset-password?error=invalidToken`
       );
     }
 
-    
     return res.redirect(
       `${process.env.FRONTEND_BASE_URL}/reset-password?token=${encodeURIComponent(
         token
@@ -468,6 +548,9 @@ router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
           phone: true,
           role: true,
           isEmailVerified: true,
+          telegramUsername: true,
+          district: true,
+          avatarUrl: true,
           createdAt: true,
         },
       });
@@ -491,6 +574,114 @@ router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
     });
   } catch (err) {
     console.error("RESET PASSWORD error:", err);
+    return res.status(500).json({ message: "Ошибка сервера" });
+  }
+});
+
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
+
+const AVATAR_DIR = path.join(__dirname, "..", "..", "uploads", "avatars");
+fs.mkdirSync(AVATAR_DIR, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, AVATAR_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const safeExt = [".jpg", ".jpeg", ".png", ".webp"].includes(ext) ? ext : ".jpg";
+    cb(null, `u${req.user.id}_${Date.now()}${safeExt}`);
+  },
+});
+
+function fileFilter(req, file, cb) {
+  const ok = ["image/jpeg", "image/png", "image/webp"].includes(file.mimetype);
+  cb(ok ? null : new Error("Неверный формат файла"), ok);
+}
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 2 * 1024 * 1024 },
+});
+
+// POST /auth/avatar
+router.post(
+  "/avatar",
+  auth,
+  (req, res, next) => {
+    upload.single("avatar")(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({
+          message: err.message || "Ошибка загрузки файла",
+        });
+      }
+      next();
+    });
+  },
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "Файл не выбран" });
+
+      const current = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { avatarUrl: true },
+      });
+
+      const newUrl = `/uploads/avatars/${req.file.filename}`;
+
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: { avatarUrl: newUrl },
+      });
+
+      if (current?.avatarUrl && current.avatarUrl.startsWith("/uploads/avatars/")) {
+        const oldPath = path.join(__dirname, "..", "..", current.avatarUrl);
+        fs.unlink(oldPath, () => {});
+      }
+
+      return res.json({ message: "Аватар обновлён", avatarUrl: newUrl });
+    } catch (err) {
+      console.error("POST /avatar error:", err);
+      return res.status(500).json({ message: "Ошибка сервера" });
+    }
+  }
+);
+
+// DELETE /auth/test/delete-user-by-email
+router.delete("/test/delete-user-by-email", async (req, res) => {
+  try {
+    let { email } = req.body;
+
+    if (!email)
+      return res.status(400).json({ message: "email обязателен" });
+
+    email = normalizeEmail(email);
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true },
+    });
+
+    if (!user)
+      return res.status(404).json({ message: "Пользователь не найден" });
+
+    await prisma.$transaction([
+      prisma.requestVolunteer.deleteMany({ where: { volunteerId: user.id } }),
+      prisma.request.deleteMany({ where: { createdById: user.id } }),
+      prisma.incident.deleteMany({ where: { createdById: user.id } }),
+      prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } }),
+      prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
+      prisma.user.delete({ where: { id: user.id } }),
+    ]);
+
+    return res.json({
+      message: "Пользователь и все связанные данные удалены",
+      email: user.email,
+      userId: user.id,
+    });
+  } catch (err) {
+    console.error("TEST delete-user-by-email error:", err);
     return res.status(500).json({ message: "Ошибка сервера" });
   }
 });
