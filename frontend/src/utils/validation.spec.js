@@ -15,6 +15,8 @@ import {
   validateProblemType,
   validatePriority,
   validateDistrict,
+  validateRequestTitle,
+  validateRequestDescription,
 } from './validation.js'
 
 // Built from fragments so no literal triggers generic-password detection (test data only)
@@ -214,5 +216,39 @@ describe('validateDistrict', () => {
   it('returns null for allowed value', () => {
     expect(validateDistrict('ALMALYNSKIY')).toBe(null)
     expect(validateDistrict('  BOSTANDYQ  ')).toBe(null)
+  })
+})
+
+describe('validateRequestTitle', () => {
+  it('returns error when empty', () => {
+    expect(validateRequestTitle('')).toBe('Заголовок обязателен')
+    expect(validateRequestTitle('   ')).toBe('Заголовок обязателен')
+  })
+  it('returns error when less than 5 chars', () => {
+    expect(validateRequestTitle('1234')).toBe('Заголовок: от 5 до 200 символов')
+    expect(validateRequestTitle('  ab  ')).toBe('Заголовок: от 5 до 200 символов')
+  })
+  it('returns error when more than 200 chars', () => {
+    expect(validateRequestTitle('a'.repeat(201))).toBe('Заголовок: от 5 до 200 символов')
+  })
+  it('returns null for 5–200 chars', () => {
+    expect(validateRequestTitle('12345')).toBe(null)
+    expect(validateRequestTitle('  Заголовок запроса  ')).toBe(null)
+    expect(validateRequestTitle('a'.repeat(200))).toBe(null)
+  })
+})
+
+describe('validateRequestDescription', () => {
+  it('returns error when empty', () => {
+    expect(validateRequestDescription('')).toBe('Описание обязательно')
+    expect(validateRequestDescription('   ')).toBe('Описание обязательно')
+  })
+  it('returns error when less than 50 chars', () => {
+    expect(validateRequestDescription('short')).toBe('Описание должно быть минимум 50 символов')
+    expect(validateRequestDescription('a'.repeat(49))).toBe('Описание должно быть минимум 50 символов')
+  })
+  it('returns null for 50+ chars', () => {
+    expect(validateRequestDescription('a'.repeat(50))).toBe(null)
+    expect(validateRequestDescription('  ' + 'Подробное описание ситуации: адрес, количество людей, что требуется.  ')).toBe(null)
   })
 })

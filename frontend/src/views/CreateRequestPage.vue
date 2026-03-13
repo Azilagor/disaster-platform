@@ -56,6 +56,7 @@
                 </div>
               </label>
             </div>
+            <div v-if="formErrors.problemType" class="invalid-feedback d-block mb-2">{{ formErrors.problemType }}</div>
             <div class="form-actions">
               <button type="button" class="btn btn-primary" @click="currentStep = 2">Далее</button>
             </div>
@@ -89,8 +90,10 @@
                   v-model="form.title"
                   type="text"
                   class="form-control"
-                  placeholder="Кратко, о чём помощь"
+                  :class="{ 'is-invalid': formErrors.title }"
+                  placeholder="Кратко, о чём помощь (от 5 до 200 символов)"
                 />
+                <div v-if="formErrors.title" class="invalid-feedback">{{ formErrors.title }}</div>
               </div>
               <div class="form-group full-width">
                 <label for="address">Адрес</label>
@@ -99,12 +102,14 @@
                   v-model="form.address"
                   type="text"
                   class="form-control"
+                  :class="{ 'is-invalid': formErrors.address }"
                   placeholder="г. Алматы, ул. Абая, 150"
                 />
+                <div v-if="formErrors.address" class="invalid-feedback">{{ formErrors.address }}</div>
               </div>
               <div class="form-group">
                 <label for="district">Район</label>
-                <select id="district" v-model="form.district" class="form-control">
+                <select id="district" v-model="form.district" class="form-control" :class="{ 'is-invalid': formErrors.district }">
                   <option value="">Выберите район</option>
                   <option
                     v-for="code in districtOptions"
@@ -114,6 +119,7 @@
                     {{ districtLabels[code] }}
                   </option>
                 </select>
+                <div v-if="formErrors.district" class="invalid-feedback">{{ formErrors.district }}</div>
               </div>
               <div class="form-group">
                 <label for="priority">Приоритет</label>
@@ -133,9 +139,11 @@
                   id="description"
                   v-model="form.description"
                   class="form-control"
-                  placeholder="Опишите, что нужно: количество людей, особые условия, срочность..."
+                  :class="{ 'is-invalid': formErrors.description }"
+                  placeholder="Опишите, что нужно: количество людей, особые условия, срочность... (минимум 50 символов)"
                   rows="4"
                 ></textarea>
+                <div v-if="formErrors.description" class="invalid-feedback">{{ formErrors.description }}</div>
               </div>
               <div class="form-group">
                 <label for="people">Количество людей</label>
@@ -233,6 +241,13 @@ import {
   PRIORITY_LABELS,
   DISTRICT_LABELS,
 } from '../constants/requests.js'
+import {
+  validateProblemType,
+  validateRequestTitle,
+  validateRequestDescription,
+  validateDistrict,
+  validatePriority,
+} from '../utils/validation.js'
 
 const router = useRouter()
 const currentStep = ref(1)
@@ -252,6 +267,14 @@ const form = reactive({
   agreeData: false,
 })
 
+const formErrors = reactive({
+  problemType: '',
+  title: '',
+  address: '',
+  district: '',
+  description: '',
+})
+
 const problemTypes = [
   { id: 'MEDICAL', title: 'Медицинская помощь', description: 'Травмы, лекарства, медикаменты, врачи', iconClass: 'medical' },
   { id: 'FOOD', title: 'Питание и вода', description: 'Продукты, питьевая вода, детское питание', iconClass: 'food' },
@@ -266,9 +289,24 @@ const priorityLabels = PRIORITY_LABELS
 const districtOptions = ALLOWED_DISTRICTS
 const districtLabels = DISTRICT_LABELS
 
+function validateForm() {
+  formErrors.problemType = validateProblemType(form.problemType) || ''
+  formErrors.title = validateRequestTitle(form.title) || ''
+  formErrors.description = validateRequestDescription(form.description) || ''
+  formErrors.district = validateDistrict(form.district) || ''
+  formErrors.address = !(form.address?.trim()) ? 'Укажите адрес' : ''
+  const pr = validatePriority(form.priority)
+  const valid = !formErrors.problemType && !formErrors.title && !formErrors.description &&
+    !formErrors.district && !formErrors.address && !pr
+  if (!valid && formErrors.problemType) currentStep.value = 1
+  else if (!valid) currentStep.value = 2
+  return valid
+}
+
 async function submitRequest() {
   if (!form.agreeData) return
   submitError.value = ''
+  if (!validateForm()) return
   submitting.value = true
   try {
     await withLoading(() =>
