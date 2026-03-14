@@ -79,6 +79,21 @@ const routes = [
     ],
   },
   {
+    path: '/admin',
+    component: () => import('../components/layout/AdminLayout.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN'] },
+    children: [
+      { path: '', name: 'AdminDashboard', component: () => import('../views/admin/AdminDashboardPage.vue') },
+      { path: 'users', name: 'AdminUsers', component: () => import('../views/admin/AdminUsersPage.vue') },
+      { path: 'users/:id', name: 'AdminUserDetail', component: () => import('../views/admin/AdminUserDetailPage.vue') },
+      { path: 'requests', name: 'AdminRequests', component: () => import('../views/admin/AdminRequestsPage.vue') },
+      { path: 'requests/:id', name: 'AdminRequestDetail', component: () => import('../views/admin/AdminRequestDetailPage.vue') },
+      { path: 'incidents', name: 'AdminIncidents', component: () => import('../views/admin/AdminIncidentsPage.vue') },
+      { path: 'incidents/new', name: 'AdminIncidentNew', component: () => import('../views/admin/AdminIncidentFormPage.vue') },
+      { path: 'incidents/:id', name: 'AdminIncidentDetail', component: () => import('../views/admin/AdminIncidentDetailPage.vue') },
+    ],
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/NotFoundPage.vue'),

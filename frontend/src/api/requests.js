@@ -66,14 +66,14 @@ export async function getRequestsMap(params = {}) {
   return parseJsonResponse(res)
 }
 
-/** Доступные заявки для волонтёра (опубликованные, на которые можно откликнуться). GET /requests/available */
+/** Доступные заявки для волонтёра (опубликованные, на которые можно откликнуться). Использует GET /requests/map (те же данные, доступно VOLUNTEER). */
 export async function getAvailableRequests(params = {}) {
   const q = new URLSearchParams()
-  ;['priority', 'problemType', 'district', 'page', 'limit'].forEach((key) => {
+  ;['priority', 'problemType', 'district'].forEach((key) => {
     if (params[key] != null && params[key] !== '') q.set(key, params[key])
   })
   const query = q.toString()
-  const res = await fetchWithAuth(`${REQUESTS}/available${query ? '?' + query : ''}`)
+  const res = await fetchWithAuth(`${REQUESTS}/map${query ? '?' + query : ''}`)
   return parseJsonResponse(res)
 }
 
@@ -89,6 +89,30 @@ export async function getRequestsAssigned(params = {}) {
 
 export async function getRequest(id) {
   const res = await fetchWithAuth(`${REQUESTS}/${id}`)
+  return parseJsonResponse(res)
+}
+
+/**
+ * Обновить заявку. Бэк: PUT /requests/:id. Координатор или владелец.
+ * @param {number} id
+ * @param {Object} data - { title?, description?, priority?, problemType?, peopleCount?, address?, district?, landmark?, additionalInfo?, contactName?, contactPhone?, contactEmail?, contactTelegram?, latitude?, longitude? }
+ * @returns {Promise<{ message, request }>}
+ */
+export async function updateRequest(id, data) {
+  const body = {}
+  const keys = [
+    'title', 'description', 'priority', 'problemType', 'peopleCount',
+    'address', 'district', 'landmark', 'additionalInfo',
+    'contactName', 'contactPhone', 'contactEmail', 'contactTelegram',
+    'latitude', 'longitude',
+  ]
+  keys.forEach((key) => {
+    if (data[key] !== undefined) body[key] = data[key]
+  })
+  const res = await fetchWithAuth(`${REQUESTS}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
   return parseJsonResponse(res)
 }
 
@@ -130,5 +154,11 @@ export async function volunteerRespond(requestId) {
 
 export async function volunteerLeave(requestId) {
   const res = await fetchWithAuth(`${REQUESTS}/${requestId}/volunteer`, { method: 'DELETE' })
+  return parseJsonResponse(res)
+}
+
+/** Удалить заявку (только админ). DELETE /requests/:id */
+export async function deleteRequest(id) {
+  const res = await fetchWithAuth(`${REQUESTS}/${id}`, { method: 'DELETE' })
   return parseJsonResponse(res)
 }

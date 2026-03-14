@@ -53,18 +53,7 @@
         </div>
         <router-link v-if="canCreateRequest" to="/create-request" class="btn btn-primary">Создать запрос</router-link>
       </div>
-      <div class="map-placeholder">
-        <div class="map-overlay">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
-          <p>Карта запросов</p>
-          <p class="map-note">
-            Маркеры загружены из API ({{ requests.length }}). Список заявок — в панели слева. Подключите карту (Leaflet, Yandex.Maps) для отображения точек по координатам.
-          </p>
-        </div>
-      </div>
+      <div ref="mapRef" class="map-wrapper"></div>
       <div class="map-legend">
         <h4>Приоритет</h4>
         <div class="legend-items">
@@ -135,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import { getRequestsMap, volunteerRespond } from '../api/requests.js'
@@ -148,6 +137,7 @@ import {
   PRIORITY_LABELS,
   PROBLEM_TYPE_LABELS,
 } from '../constants/requests.js'
+import 'leaflet/dist/leaflet.css'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -160,6 +150,10 @@ const requests = ref([])
 const loading = ref(false)
 const selectedRequest = ref(null)
 const respondingId = ref(null)
+const mapRef = ref(null)
+
+let map = null
+let markersLayer = null
 
 const filters = reactive({ district: '', priority: '', problemType: '' })
 
@@ -195,13 +189,58 @@ const filteredBySearch = computed(() => {
   )
 })
 
-onMounted(() => {
+const PRIORITY_COLORS = {
+  CRITICAL: '#dc2626',
+  HIGH: '#ea580c',
+  MEDIUM: '#d97706',
+  LOW: '#059669',
+}
+
+function updateMarkers() {
+  if (!map || !markersLayer) return
+  markersLayer.clearLayers()
+  const L = window.L
+  if (!L) return
+  const list = requests.value
+  const withCoords = list.filter((r) => r.latitude != null && r.longitude != null && !Number.isNaN(Number(r.latitude)) && !Number.isNaN(Number(r.longitude)))
+  withCoords.forEach((r) => {
+    const lat = Number(r.latitude)
+    const lon = Number(r.longitude)
+    const color = PRIORITY_COLORS[r.priority] || PRIORITY_COLORS.MEDIUM
+    const icon = L.divIcon({
+      className: 'request-marker',
+      html: `<span style="background:${color};width:14px;height:14px;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);display:block;"></span>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    })
+    const marker = L.marker([lat, lon], { icon })
+    marker.request = r
+    marker.on('click', () => { selectedRequest.value = r })
+    markersLayer.addLayer(marker)
+  })
+}
+
+onMounted(async () => {
+  await nextTick()
+  if (mapRef.value) {
+    const L = (await import('leaflet')).default
+    window.L = L
+    map = L.map(mapRef.value).setView([43.238949, 76.945465], 12)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map)
+    markersLayer = L.layerGroup().addTo(map)
+    updateMarkers()
+  }
   const id = route.query.request
   if (id && requests.value.length) {
     const r = requests.value.find((req) => String(req.id) === String(id))
     if (r) selectedRequest.value = r
   }
 })
+
+watch(requests, () => updateMarkers(), { deep: true })
+
 watch(requests, (list) => {
   const id = route.query.request
   if (id && list.length && !selectedRequest.value) {
@@ -246,9 +285,8 @@ async function respondFromMap(id) {
 .map-header { display: flex; gap: 0.5rem; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; }
 .search-box { flex: 1; }
 .search-box input { width: 100%; }
-.map-placeholder { flex: 1; position: relative; background: #f5f5f5; }
-.map-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; padding: 2rem; text-align: center; }
-.map-note { font-size: 0.9rem; margin-top: 0.5rem; max-width: 360px; }
+.map-wrapper { flex: 1; min-height: 400px; background: #e8e8e8; }
+.map-wrapper :deep(.request-marker) { background: none !important; border: none !important; }
 .map-legend { padding: 1rem; border-top: 1px solid #eee; }
 .map-legend h4 { margin: 0 0 0.5rem; font-size: 0.9rem; }
 .legend-items { display: flex; flex-wrap: wrap; gap: 1rem; }

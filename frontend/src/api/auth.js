@@ -1,4 +1,4 @@
-import { fetchWithAuth, parseJsonResponse } from './client.js'
+import { fetchWithAuth, fetchWithAuthFormData, parseJsonResponse } from './client.js'
 
 const AUTH = '/auth'
 
@@ -34,6 +34,26 @@ export async function login(email, password) {
   const res = await fetchWithAuth(`${AUTH}/login`, {
     method: 'POST',
     body: JSON.stringify({ email, password }),
+  })
+  return parseJsonResponse(res)
+}
+
+/**
+ * Обновить профиль текущего пользователя.
+ * Бэк: PUT /auth/me → 200 { message, user }
+ * @param {Object} profileData - { firstName?, lastName?, phone?, district?, telegramUsername? }
+ * @returns {Promise<{ message, user }>}
+ */
+export async function updateProfile(profileData) {
+  const body = {}
+  if (profileData.firstName !== undefined) body.firstName = profileData.firstName
+  if (profileData.lastName !== undefined) body.lastName = profileData.lastName
+  if (profileData.phone !== undefined) body.phone = profileData.phone
+  if (profileData.district !== undefined) body.district = profileData.district || null
+  if (profileData.telegramUsername !== undefined) body.telegramUsername = profileData.telegramUsername || null
+  const res = await fetchWithAuth(`${AUTH}/me`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
   })
   return parseJsonResponse(res)
 }
@@ -94,6 +114,32 @@ export async function resetPassword(token, newPassword) {
 export async function resendVerification() {
   const res = await fetchWithAuth(`${AUTH}/resend-verification`, {
     method: 'POST',
+  })
+  return parseJsonResponse(res)
+}
+
+/**
+ * Загрузить аватар. Бэк: POST /auth/avatar, multipart/form-data, поле avatar.
+ * @param {File} file - файл изображения (jpg, png, webp)
+ * @returns {Promise<{ message, avatarUrl }>}
+ */
+export async function uploadAvatar(file) {
+  const formData = new FormData()
+  formData.append('avatar', file)
+  const res = await fetchWithAuthFormData(`${AUTH}/avatar`, formData)
+  return parseJsonResponse(res)
+}
+
+/**
+ * Удалить аккаунт текущего пользователя. Бэк: DELETE /auth/me, body: { password }.
+ * После успеха нужно выйти и редиректнуть на логин.
+ * @param {string} password
+ * @returns {Promise<{ message }>}
+ */
+export async function deleteAccount(password) {
+  const res = await fetchWithAuth(`${AUTH}/me`, {
+    method: 'DELETE',
+    body: JSON.stringify({ password }),
   })
   return parseJsonResponse(res)
 }

@@ -64,11 +64,10 @@
       </div>
       <div class="stat-card">
         <div class="stat-header">
-          <span class="stat-title">Волонтёры онлайн</span>
-          <span class="stat-change positive">+5</span>
+          <span class="stat-title">{{ isCoordinatorOrAdmin ? 'Пользователей' : 'Волонтёры онлайн' }}</span>
         </div>
-        <div class="stat-number">24</div>
-        <p class="stat-description">Готовы помочь</p>
+        <div class="stat-number">{{ isCoordinatorOrAdmin && userStats ? userStats.total : '24' }}</div>
+        <p class="stat-description">{{ isCoordinatorOrAdmin ? 'Всего в системе' : 'Готовы помочь' }}</p>
         <div class="stat-icon stat-icon-green">
           <svg
             width="24"
@@ -108,10 +107,10 @@
       </div>
       <div class="stat-card">
         <div class="stat-header">
-          <span class="stat-title">Срочные</span>
+          <span class="stat-title">{{ isCoordinatorOrAdmin ? 'Без верификации' : 'Срочные' }}</span>
         </div>
-        <div class="stat-number">7</div>
-        <p class="stat-description">Требуют внимания</p>
+        <div class="stat-number">{{ isCoordinatorOrAdmin && userStats ? userStats.unverified : '7' }}</div>
+        <p class="stat-description">{{ isCoordinatorOrAdmin ? 'Email не подтверждён' : 'Требуют внимания' }}</p>
         <div class="stat-icon stat-icon-purple">
           <svg
             width="24"
@@ -189,11 +188,14 @@
       <div class="card">
         <div class="card-header">
           <h2 class="card-title">Волонтёры</h2>
-          <router-link to="/volunteers" class="btn btn-sm btn-outline">Все</router-link>
+          <router-link v-if="authStore.user?.role === 'COORDINATOR' || authStore.user?.role === 'ADMIN'" to="/volunteers" class="btn btn-sm btn-outline">Все</router-link>
         </div>
-        <div class="volunteer-list">
+        <div v-if="volunteersLoading" class="volunteer-list volunteer-list-loading">Загрузка...</div>
+        <div v-else-if="!volunteers.length" class="volunteer-list volunteer-list-empty">Нет данных о волонтёрах</div>
+        <div v-else class="volunteer-list">
           <div v-for="v in volunteers" :key="v.id" class="volunteer-item">
-            <img :src="v.avatar" alt="" class="volunteer-avatar" width="48" height="48" />
+            <img v-if="v.avatar" :src="v.avatar" alt="" class="volunteer-avatar" width="48" height="48" />
+            <div v-else class="volunteer-avatar volunteer-avatar-placeholder">?</div>
             <div class="volunteer-info">
               <h3>{{ v.name }}</h3>
               <div class="volunteer-skills">
@@ -212,6 +214,22 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Активные инциденты</h2>
+          <router-link v-if="isCoordinatorOrAdmin" to="/incidents" class="btn btn-sm btn-outline">Все</router-link>
+        </div>
+        <div v-if="incidentsLoading" class="incidents-loading">Загрузка...</div>
+        <div v-else-if="!activeIncidents.length" class="incidents-empty">Нет активных инцидентов</div>
+        <ul v-else class="incidents-list">
+          <li v-for="inc in activeIncidents" :key="inc.id" class="incident-item">
+            <span class="incident-severity" :class="(inc.severity || '').toLowerCase()">{{ severityLabel(inc.severity) }}</span>
+            <router-link :to="'/incidents?highlight=' + inc.id" class="incident-title">{{ inc.title }}</router-link>
+            <span class="incident-district">{{ DISTRICT_LABELS[inc.district] || inc.district }}</span>
+          </li>
+        </ul>
       </div>
 
       <div class="card">
@@ -236,14 +254,30 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
 import { getMyRequests } from '../api/requests.js'
-import { PRIORITY_LABELS } from '../constants/requests.js'
+import { getVolunteers, getUsersStats } from '../api/users.js'
+import { getActiveIncidents } from '../api/incidents.js'
+import { PRIORITY_LABELS, DISTRICT_LABELS } from '../constants/requests.js'
 
 const authStore = useAuthStore()
+const isCoordinatorOrAdmin = computed(() => {
+  const r = (authStore.user?.role || '').toUpperCase()
+  return r === 'COORDINATOR' || r === 'ADMIN'
+})
 
 const requestsFilter = ref('all')
 const requests = ref([])
 const requestsLoading = ref(true)
 const requestsError = ref('')
+const volunteers = ref([])
+const volunteersLoading = ref(true)
+const userStats = ref(null)
+const activeIncidents = ref([])
+const incidentsLoading = ref(true)
+
+const SEVERITY_LABELS = { CRITICAL: 'Критический', HIGH: 'Высокий', MEDIUM: 'Средний', LOW: 'Низкий' }
+function severityLabel(s) {
+  return SEVERITY_LABELS[s] || s || '—'
+}
 
 function formatTimeAgo(dateStr) {
   if (!dateStr) return '—'
@@ -288,6 +322,40 @@ onMounted(async () => {
   } finally {
     requestsLoading.value = false
   }
+  if (isCoordinatorOrAdmin.value) {
+    try {
+      const stats = await getUsersStats()
+      userStats.value = stats
+    } catch (_) {
+      userStats.value = null
+    }
+  }
+  try {
+    const data = await getVolunteers({ limit: 10 })
+    const items = data.items ?? []
+    volunteers.value = items.map((v) => ({
+      id: v.id,
+      name: [v.firstName, v.lastName].filter(Boolean).join(' ') || 'Волонтёр',
+      avatar: v.avatarUrl || '',
+      skills: [],
+      location: DISTRICT_LABELS[v.district] || v.district || '—',
+      status: 'volunteer',
+      statusLabel: 'Волонтёр',
+      rating: v._count?.volunteerRequests ?? '—',
+    }))
+  } catch (_) {
+    volunteers.value = []
+  } finally {
+    volunteersLoading.value = false
+  }
+  try {
+    const list = await getActiveIncidents()
+    activeIncidents.value = Array.isArray(list) ? list : []
+  } catch (_) {
+    activeIncidents.value = []
+  } finally {
+    incidentsLoading.value = false
+  }
 })
 
 const displayedRequests = computed(() => {
@@ -296,39 +364,6 @@ const displayedRequests = computed(() => {
   if (requestsFilter.value === 'new') list = list.filter((r) => r.status === 'NEW')
   return list
 })
-
-const volunteers = ref([
-  {
-    id: 1,
-    name: 'Алексей К.',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=a1',
-    skills: ['Медицина'],
-    location: 'Алматы',
-    status: 'online',
-    statusLabel: 'Онлайн',
-    rating: '4.9',
-  },
-  {
-    id: 2,
-    name: 'Мария С.',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=m2',
-    skills: ['Логистика'],
-    location: 'Алматы',
-    status: 'away',
-    statusLabel: 'Отошёл',
-    rating: '4.8',
-  },
-  {
-    id: 3,
-    name: 'Дмитрий В.',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=d3',
-    skills: ['Эвакуация'],
-    location: 'Алматы',
-    status: 'online',
-    statusLabel: 'Онлайн',
-    rating: '5.0',
-  },
-])
 
 const activity = ref([
   {
@@ -354,3 +389,18 @@ const activity = ref([
   },
 ])
 </script>
+
+<style scoped>
+.incidents-loading,
+.incidents-empty { padding: var(--spacing-xl); color: var(--gray-600); }
+.incidents-list { list-style: none; padding: 0 var(--spacing-xl) var(--spacing-xl); margin: 0; }
+.incident-item { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100); }
+.incident-item:last-child { border-bottom: none; }
+.incident-severity { font-size: 0.75rem; padding: 0.2rem 0.4rem; border-radius: 4px; }
+.incident-severity.critical { background: #fecaca; color: #991b1b; }
+.incident-severity.high { background: #fed7aa; color: #9a3412; }
+.incident-severity.medium { background: #fef08a; color: #854d0e; }
+.incident-severity.low { background: #d1fae5; color: #065f46; }
+.incident-title { flex: 1; min-width: 0; font-weight: 500; }
+.incident-district { font-size: 0.875rem; color: var(--gray-600); }
+</style>

@@ -44,6 +44,27 @@ export async function fetchWithAuth(url, options = {}, useFullUrl = false) {
 }
 
 /**
+ * POST с FormData (multipart). Не устанавливает Content-Type — браузер выставит boundary.
+ * @param {string} url - путь относительно API_BASE_URL
+ * @param {FormData} formData
+ * @returns {Promise<Response>}
+ */
+export async function fetchWithAuthFormData(url, formData) {
+  const token = getStoredToken()
+  const path = `${API_BASE_URL}${url}`
+  const fullUrl = path.endsWith('/') ? path : `${path}/`
+  const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+  const response = await fetch(fullUrl, { method: 'POST', headers, body: formData })
+  if (response.status === 401) {
+    clearSessionAndRedirectToLogin()
+    const error = new Error('Необходима повторная авторизация')
+    error.status = 401
+    throw error
+  }
+  return response
+}
+
+/**
  * Повтор запроса при ошибке сети/таймауте.
  * @param {string} url
  * @param {RequestInit} options

@@ -12,8 +12,22 @@
             width="120"
             height="120"
           />
-          <button type="button" class="avatar-upload-btn" title="Сменить фото">
+          <input
+            ref="avatarInputRef"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            class="avatar-input-hidden"
+            @change="onAvatarFileChange"
+          />
+          <button
+            type="button"
+            class="avatar-upload-btn"
+            title="Сменить фото"
+            :disabled="avatarUploading"
+            @click="triggerAvatarInput"
+          >
             <svg
+              v-if="!avatarUploading"
               width="18"
               height="18"
               viewBox="0 0 20 20"
@@ -25,6 +39,7 @@
               <path d="M4 18v-4M4 14L2 16l-2-2" />
               <circle cx="10" cy="10" r="8" />
             </svg>
+            <span v-else class="avatar-upload-spinner">...</span>
           </button>
         </div>
         <div class="profile-header-info">
@@ -59,22 +74,68 @@
           <div class="card-header">
             <h2 class="card-title">Личные данные</h2>
           </div>
-          <div class="info-list" style="padding: var(--spacing-xl)">
-            <div class="info-item">
-              <span class="info-label">Имя</span>
-              <span class="info-value">{{ authStore.user?.firstName ?? '—' }}</span>
+          <form class="profile-form" @submit.prevent="saveProfile">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="profile-firstName">Имя</label>
+                <input
+                  id="profile-firstName"
+                  v-model="profileForm.firstName"
+                  type="text"
+                  class="form-control"
+                  minlength="2"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="profile-lastName">Фамилия</label>
+                <input
+                  id="profile-lastName"
+                  v-model="profileForm.lastName"
+                  type="text"
+                  class="form-control"
+                  minlength="2"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="profile-phone">Телефон</label>
+                <input
+                  id="profile-phone"
+                  v-model="profileForm.phone"
+                  type="tel"
+                  class="form-control"
+                  placeholder="+7..."
+                />
+              </div>
+              <div class="form-group">
+                <label for="profile-district">Район</label>
+                <select id="profile-district" v-model="profileForm.district" class="form-control">
+                  <option value="">— не указан —</option>
+                  <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] ?? d }}</option>
+                </select>
+              </div>
+              <div class="form-group form-group-full">
+                <label for="profile-telegram">Telegram</label>
+                <input
+                  id="profile-telegram"
+                  v-model="profileForm.telegramUsername"
+                  type="text"
+                  class="form-control"
+                  placeholder="@username или username"
+                />
+                <span v-if="profileError" class="form-error">{{ profileError }}</span>
+                <span v-if="profileSuccess" class="form-success">{{ profileSuccess }}</span>
+              </div>
             </div>
-            <div class="info-item">
-              <span class="info-label">Фамилия</span>
-              <span class="info-value">{{ authStore.user?.lastName ?? '—' }}</span>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" :disabled="profileSaving">Сохранить</button>
             </div>
+          </form>
+          <div class="info-list profile-readonly-meta" style="padding: 0 var(--spacing-xl) var(--spacing-xl)">
             <div class="info-item">
               <span class="info-label">Email</span>
               <span class="info-value">{{ authStore.user?.email ?? '—' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Телефон</span>
-              <span class="info-value">{{ authStore.user?.phone ?? '—' }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">Роль</span>
@@ -159,6 +220,39 @@
             </div>
           </div>
         </div>
+        <div class="card card-danger-zone">
+          <div class="card-header">
+            <h2 class="card-title">Удалить аккаунт</h2>
+          </div>
+          <div class="danger-zone-content">
+            <p>Удаление аккаунта необратимо. Будут удалены ваши заявки и привязки.</p>
+            <div v-if="deleteAccountError" class="auth-message auth-message-error">{{ deleteAccountError }}</div>
+            <form class="delete-account-form" @submit.prevent="submitDeleteAccount">
+              <div class="form-group">
+                <label for="delete-password">Введите пароль для подтверждения</label>
+                <input
+                  id="delete-password"
+                  v-model="deletePassword"
+                  type="password"
+                  class="form-control"
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                />
+              </div>
+              <label class="checkbox-label">
+                <input v-model="deleteConfirm" type="checkbox" />
+                <span>Я понимаю, что аккаунт и данные будут удалены безвозвратно</span>
+              </label>
+              <button
+                type="submit"
+                class="btn btn-danger"
+                :disabled="!deleteConfirm || !deletePassword.trim() || deleteAccountSaving"
+              >
+                {{ deleteAccountSaving ? 'Удаление...' : 'Удалить аккаунт' }}
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
       <div class="profile-right-column">
         <div class="card">
@@ -200,12 +294,110 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import { getMyRequests } from '../api/requests.js'
-import { PROBLEM_TYPE_LABELS, PRIORITY_LABELS } from '../constants/requests.js'
+import { updateProfile, uploadAvatar, deleteAccount } from '../api/auth.js'
+import { PROBLEM_TYPE_LABELS, PRIORITY_LABELS, ALLOWED_DISTRICTS, DISTRICT_LABELS } from '../constants/requests.js'
 
+const router = useRouter()
 const authStore = useAuthStore()
+const avatarInputRef = ref(null)
+const avatarUploading = ref(false)
+
+function triggerAvatarInput() {
+  if (avatarInputRef.value) avatarInputRef.value.click()
+}
+
+async function onAvatarFileChange(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  const allowed = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowed.includes(file.type)) {
+    profileError.value = 'Допустимы только JPG, PNG или WebP'
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    profileError.value = 'Размер файла не более 2 МБ'
+    return
+  }
+  e.target.value = ''
+  profileError.value = ''
+  avatarUploading.value = true
+  try {
+    const { avatarUrl } = await uploadAvatar(file)
+    authStore.setAuth(authStore.token, { ...authStore.user, avatarUrl })
+  } catch (err) {
+    profileError.value = err.message || 'Не удалось загрузить фото'
+  } finally {
+    avatarUploading.value = false
+  }
+}
+
+const profileForm = reactive({
+  firstName: '',
+  lastName: '',
+  phone: '',
+  district: '',
+  telegramUsername: '',
+})
+const profileSaving = ref(false)
+const profileError = ref('')
+const profileSuccess = ref('')
+
+const deletePassword = ref('')
+const deleteConfirm = ref(false)
+const deleteAccountSaving = ref(false)
+const deleteAccountError = ref('')
+
+async function submitDeleteAccount() {
+  if (!deleteConfirm.value || !deletePassword.value.trim()) return
+  deleteAccountError.value = ''
+  deleteAccountSaving.value = true
+  try {
+    await deleteAccount(deletePassword.value)
+    authStore.logout()
+    router.push('/')
+  } catch (err) {
+    deleteAccountError.value = err.message || 'Не удалось удалить аккаунт'
+  } finally {
+    deleteAccountSaving.value = false
+  }
+}
+
+function syncProfileForm() {
+  const u = authStore.user
+  profileForm.firstName = u?.firstName ?? ''
+  profileForm.lastName = u?.lastName ?? ''
+  profileForm.phone = u?.phone ?? ''
+  profileForm.district = u?.district ?? ''
+  profileForm.telegramUsername = u?.telegramUsername ?? ''
+}
+
+async function saveProfile() {
+  profileError.value = ''
+  profileSuccess.value = ''
+  profileSaving.value = true
+  try {
+    const { user: updated } = await updateProfile({
+      firstName: profileForm.firstName.trim(),
+      lastName: profileForm.lastName.trim(),
+      phone: profileForm.phone.trim() || undefined,
+      district: profileForm.district || undefined,
+      telegramUsername: profileForm.telegramUsername.trim() || undefined,
+    })
+    authStore.setAuth(authStore.token, updated)
+    profileSuccess.value = 'Профиль сохранён'
+    setTimeout(() => { profileSuccess.value = '' }, 3000)
+  } catch (e) {
+    profileError.value = e.message || 'Не удалось сохранить профиль'
+  } finally {
+    profileSaving.value = false
+  }
+}
+
+watch(() => authStore.user, syncProfileForm, { deep: true })
 
 const myRequests = ref([])
 const myRequestsLoading = ref(true)
@@ -221,6 +413,7 @@ const statusLabels = {
 }
 
 onMounted(async () => {
+  syncProfileForm()
   try {
     myRequests.value = await getMyRequests()
   } catch (e) {
@@ -257,3 +450,34 @@ const achievements = ref([
   { id: 3, title: 'Герой недели', description: 'Топ-3 волонтёра за неделю', unlocked: false },
 ])
 </script>
+
+<style scoped>
+.avatar-input-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.avatar-upload-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+.card-danger-zone .card-title {
+  color: var(--red-600, #dc2626);
+}
+.danger-zone-content {
+  padding: var(--spacing-xl);
+}
+.delete-account-form .form-group {
+  margin-bottom: 1rem;
+}
+.btn-danger {
+  background: var(--red-600, #dc2626);
+  color: white;
+  border: none;
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--red-700, #b91c1c);
+}
+</style>

@@ -77,6 +77,7 @@
               <span v-else class="badge badge-secondary">Не опубликована</span>
             </td>
             <td class="actions-cell">
+              <button type="button" class="btn btn-sm btn-outline" @click="openEditModal(r)">Редактировать</button>
               <template v-if="r.isPublished">
                 <button type="button" class="btn btn-sm btn-secondary" @click="unpublishRequest(r.id)">Снять</button>
               </template>
@@ -132,6 +133,84 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit request modal -->
+    <div v-if="editModalRequest" class="modal" @click.self="editModalRequest = null">
+      <div class="modal-overlay"></div>
+      <div class="modal-content modal-content-wide">
+        <div class="modal-header">
+          <h2>Редактировать заявку #{{ editModalRequest.id }}</h2>
+          <button type="button" class="modal-close" aria-label="Закрыть" @click="editModalRequest = null">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div v-if="editError" class="auth-message auth-message-error">{{ editError }}</div>
+          <form class="edit-request-form" @submit.prevent="submitEditRequest">
+            <div class="form-group">
+              <label for="edit-title">Заголовок (5–200 символов)</label>
+              <input id="edit-title" v-model="editForm.title" type="text" class="form-control" required minlength="5" maxlength="200" />
+            </div>
+            <div class="form-group">
+              <label for="edit-description">Описание (не менее 50 символов)</label>
+              <textarea id="edit-description" v-model="editForm.description" class="form-control" rows="4" required minlength="50"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="edit-priority">Приоритет</label>
+                <select id="edit-priority" v-model="editForm.priority" class="form-control">
+                  <option v-for="p in ALLOWED_PRIORITIES" :key="p" :value="p">{{ PRIORITY_LABELS[p] }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="edit-problemType">Тип помощи</label>
+                <select id="edit-problemType" v-model="editForm.problemType" class="form-control">
+                  <option v-for="t in ALLOWED_PROBLEM_TYPES" :key="t" :value="t">{{ PROBLEM_TYPE_LABELS[t] }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="edit-peopleCount">Количество людей</label>
+                <input id="edit-peopleCount" v-model.number="editForm.peopleCount" type="number" class="form-control" min="1" max="1000" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="edit-address">Адрес</label>
+              <input id="edit-address" v-model="editForm.address" type="text" class="form-control" required />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="edit-district">Район</label>
+                <select id="edit-district" v-model="editForm.district" class="form-control">
+                  <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="edit-landmark">Ориентир</label>
+                <input id="edit-landmark" v-model="editForm.landmark" type="text" class="form-control" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="edit-contactName">Контактное лицо</label>
+                <input id="edit-contactName" v-model="editForm.contactName" type="text" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label for="edit-contactPhone">Телефон</label>
+                <input id="edit-contactPhone" v-model="editForm.contactPhone" type="tel" class="form-control" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="edit-additionalInfo">Доп. информация</label>
+              <textarea id="edit-additionalInfo" v-model="editForm.additionalInfo" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" @click="editModalRequest = null">Отмена</button>
+              <button type="submit" class="btn btn-primary" :disabled="editSaving">Сохранить</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -139,6 +218,8 @@
 import { ref, reactive, watch } from 'vue'
 import {
   getRequests,
+  getRequest,
+  updateRequest,
   publishRequest as apiPublishRequest,
   unpublishRequest as apiUnpublishRequest,
   patchRequestStatus as apiPatchRequestStatus,
@@ -255,6 +336,85 @@ function openAssignModal(request) {
   assignModalRequest.value = request
 }
 
+const editModalRequest = ref(null)
+const editForm = reactive({
+  title: '',
+  description: '',
+  priority: 'MEDIUM',
+  problemType: 'MEDICAL',
+  peopleCount: 1,
+  address: '',
+  district: 'ALMALYNSKIY',
+  landmark: '',
+  contactName: '',
+  contactPhone: '',
+  additionalInfo: '',
+})
+const editSaving = ref(false)
+const editError = ref('')
+
+async function openEditModal(request) {
+  editModalRequest.value = request
+  editError.value = ''
+  editForm.title = request.title ?? ''
+  editForm.description = request.description ?? ''
+  editForm.priority = request.priority ?? 'MEDIUM'
+  editForm.problemType = request.problemType ?? 'MEDICAL'
+  editForm.peopleCount = request.peopleCount ?? 1
+  editForm.address = request.address ?? ''
+  editForm.district = request.district ?? 'ALMALYNSKIY'
+  editForm.landmark = request.landmark ?? ''
+  editForm.contactName = request.contactName ?? ''
+  editForm.contactPhone = request.contactPhone ?? ''
+  editForm.additionalInfo = request.additionalInfo ?? ''
+  try {
+    const full = await getRequest(request.id)
+    editModalRequest.value = full
+    editForm.title = full.title ?? ''
+    editForm.description = full.description ?? ''
+    editForm.priority = full.priority ?? 'MEDIUM'
+    editForm.problemType = full.problemType ?? 'MEDICAL'
+    editForm.peopleCount = full.peopleCount ?? 1
+    editForm.address = full.address ?? ''
+    editForm.district = full.district ?? 'ALMALYNSKIY'
+    editForm.landmark = full.landmark ?? ''
+    editForm.contactName = full.contactName ?? ''
+    editForm.contactPhone = full.contactPhone ?? ''
+    editForm.additionalInfo = full.additionalInfo ?? ''
+  } catch (e) {
+    editError.value = e.message || 'Не удалось загрузить заявку'
+  }
+}
+
+async function submitEditRequest() {
+  if (!editModalRequest.value) return
+  editError.value = ''
+  editSaving.value = true
+  try {
+    await withLoading(() =>
+      updateRequest(editModalRequest.value.id, {
+        title: editForm.title.trim(),
+        description: editForm.description.trim(),
+        priority: editForm.priority,
+        problemType: editForm.problemType,
+        peopleCount: editForm.peopleCount || 1,
+        address: editForm.address.trim(),
+        district: editForm.district,
+        landmark: editForm.landmark.trim() || undefined,
+        contactName: editForm.contactName.trim(),
+        contactPhone: editForm.contactPhone.trim(),
+        additionalInfo: editForm.additionalInfo.trim() || undefined,
+      })
+    )
+    editModalRequest.value = null
+    loadRequests()
+  } catch (e) {
+    editError.value = e.message || 'Не удалось сохранить заявку'
+  } finally {
+    editSaving.value = false
+  }
+}
+
 async function assignVolunteer(requestId, volunteerId) {
   assigningId.value = volunteerId
   try {
@@ -298,4 +458,8 @@ async function assignVolunteer(requestId, volunteerId) {
 .volunteer-list { list-style: none; padding: 0; margin: 0; }
 .volunteer-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; }
 .mb-3 { margin-bottom: 1rem; }
+.modal-content-wide { max-width: 560px; }
+.edit-request-form .form-group { margin-bottom: 1rem; }
+.edit-request-form .form-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; }
+.edit-request-form .form-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
 </style>
