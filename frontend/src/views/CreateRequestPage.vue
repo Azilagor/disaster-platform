@@ -56,6 +56,7 @@
                 </div>
               </label>
             </div>
+            <div v-if="formErrors.problemType" class="invalid-feedback d-block mb-2">{{ formErrors.problemType }}</div>
             <div class="form-actions">
               <button type="button" class="btn btn-primary" @click="currentStep = 2">Далее</button>
             </div>
@@ -83,14 +84,54 @@
             </div>
             <div class="form-grid">
               <div class="form-group full-width">
+                <label for="title">Заголовок запроса</label>
+                <input
+                  id="title"
+                  v-model="form.title"
+                  type="text"
+                  class="form-control"
+                  :class="{ 'is-invalid': formErrors.title }"
+                  placeholder="Кратко, о чём помощь (от 5 до 200 символов)"
+                />
+                <div v-if="formErrors.title" class="invalid-feedback">{{ formErrors.title }}</div>
+              </div>
+              <div class="form-group full-width">
                 <label for="address">Адрес</label>
                 <input
                   id="address"
                   v-model="form.address"
                   type="text"
                   class="form-control"
+                  :class="{ 'is-invalid': formErrors.address }"
                   placeholder="г. Алматы, ул. Абая, 150"
                 />
+                <div v-if="formErrors.address" class="invalid-feedback">{{ formErrors.address }}</div>
+              </div>
+              <div class="form-group">
+                <label for="district">Район</label>
+                <select id="district" v-model="form.district" class="form-control" :class="{ 'is-invalid': formErrors.district }">
+                  <option value="">Выберите район</option>
+                  <option
+                    v-for="code in districtOptions"
+                    :key="code"
+                    :value="code"
+                  >
+                    {{ districtLabels[code] }}
+                  </option>
+                </select>
+                <div v-if="formErrors.district" class="invalid-feedback">{{ formErrors.district }}</div>
+              </div>
+              <div class="form-group">
+                <label for="priority">Приоритет</label>
+                <select id="priority" v-model="form.priority" class="form-control">
+                  <option
+                    v-for="code in priorityOptions"
+                    :key="code"
+                    :value="code"
+                  >
+                    {{ priorityLabels[code] }}
+                  </option>
+                </select>
               </div>
               <div class="form-group full-width">
                 <label for="description">Описание</label>
@@ -98,18 +139,11 @@
                   id="description"
                   v-model="form.description"
                   class="form-control"
-                  placeholder="Опишите, что нужно: количество людей, особые условия, срочность..."
+                  :class="{ 'is-invalid': formErrors.description }"
+                  placeholder="Опишите, что нужно: количество людей, особые условия, срочность... (минимум 50 символов)"
                   rows="4"
                 ></textarea>
-              </div>
-              <div class="form-group">
-                <label for="priority">Приоритет</label>
-                <select id="priority" v-model="form.priority" class="form-control">
-                  <option value="low">Низкий</option>
-                  <option value="medium">Средний</option>
-                  <option value="high">Высокий</option>
-                  <option value="critical">Критический</option>
-                </select>
+                <div v-if="formErrors.description" class="invalid-feedback">{{ formErrors.description }}</div>
               </div>
               <div class="form-group">
                 <label for="people">Количество людей</label>
@@ -201,6 +235,19 @@ import AppHeader from '../components/layout/AppHeader.vue'
 import AppFooter from '../components/layout/AppFooter.vue'
 import { createRequest } from '../api/requests.js'
 import { withLoading } from '../stores/loading.js'
+import {
+  ALLOWED_PRIORITIES,
+  ALLOWED_DISTRICTS,
+  PRIORITY_LABELS,
+  DISTRICT_LABELS,
+} from '../constants/requests.js'
+import {
+  validateProblemType,
+  validateRequestTitle,
+  validateRequestDescription,
+  validateDistrict,
+  validatePriority,
+} from '../utils/validation.js'
 
 const router = useRouter()
 const currentStep = ref(1)
@@ -208,9 +255,11 @@ const submitting = ref(false)
 const submitError = ref('')
 const form = reactive({
   problemType: '',
+  title: '',
   address: '',
+  district: '',
   description: '',
-  priority: 'medium',
+  priority: 'MEDIUM',
   peopleCount: 1,
   contactName: '',
   contactPhone: '',
@@ -218,56 +267,56 @@ const form = reactive({
   agreeData: false,
 })
 
+const formErrors = reactive({
+  problemType: '',
+  title: '',
+  address: '',
+  district: '',
+  description: '',
+})
+
 const problemTypes = [
-  {
-    id: 'medical',
-    title: 'Медицинская помощь',
-    description: 'Травмы, лекарства, медикаменты, врачи',
-    iconClass: 'medical',
-  },
-  {
-    id: 'food',
-    title: 'Питание и вода',
-    description: 'Продукты, питьевая вода, детское питание',
-    iconClass: 'food',
-  },
-  {
-    id: 'evacuation',
-    title: 'Эвакуация',
-    description: 'Транспорт, выезд из зоны ЧС',
-    iconClass: 'evacuation',
-  },
-  {
-    id: 'shelter',
-    title: 'Жильё и ночлег',
-    description: 'Временное размещение, одежда',
-    iconClass: 'shelter',
-  },
-  {
-    id: 'repair',
-    title: 'Ремонт и техника',
-    description: 'Электрика, отопление, связь',
-    iconClass: 'repair',
-  },
-  {
-    id: 'psychological',
-    title: 'Психологическая помощь',
-    description: 'Поддержка, консультация',
-    iconClass: 'psychological',
-  },
+  { id: 'MEDICAL', title: 'Медицинская помощь', description: 'Травмы, лекарства, медикаменты, врачи', iconClass: 'medical' },
+  { id: 'FOOD', title: 'Питание и вода', description: 'Продукты, питьевая вода, детское питание', iconClass: 'food' },
+  { id: 'EVACUATION', title: 'Эвакуация', description: 'Транспорт, выезд из зоны ЧС', iconClass: 'evacuation' },
+  { id: 'SHELTER', title: 'Жильё и ночлег', description: 'Временное размещение, одежда', iconClass: 'shelter' },
+  { id: 'REPAIR', title: 'Ремонт и техника', description: 'Электрика, отопление, связь', iconClass: 'repair' },
+  { id: 'PSYCHOLOGICAL', title: 'Психологическая помощь', description: 'Поддержка, консультация', iconClass: 'psychological' },
 ]
+
+const priorityOptions = ALLOWED_PRIORITIES
+const priorityLabels = PRIORITY_LABELS
+const districtOptions = ALLOWED_DISTRICTS
+const districtLabels = DISTRICT_LABELS
+
+function validateForm() {
+  formErrors.problemType = validateProblemType(form.problemType) || ''
+  formErrors.title = validateRequestTitle(form.title) || ''
+  formErrors.description = validateRequestDescription(form.description) || ''
+  formErrors.district = validateDistrict(form.district) || ''
+  formErrors.address = !(form.address?.trim()) ? 'Укажите адрес' : ''
+  const pr = validatePriority(form.priority)
+  const valid = !formErrors.problemType && !formErrors.title && !formErrors.description &&
+    !formErrors.district && !formErrors.address && !pr
+  if (!valid && formErrors.problemType) currentStep.value = 1
+  else if (!valid) currentStep.value = 2
+  return valid
+}
 
 async function submitRequest() {
   if (!form.agreeData) return
   submitError.value = ''
+  if (!validateForm()) return
   submitting.value = true
   try {
     await withLoading(() =>
       createRequest({
-        problemType: form.problemType.toUpperCase(),
-        address: form.address?.trim() ?? '',
+        problemType: form.problemType,
+        title: form.title?.trim() ?? '',
         description: form.description?.trim() ?? '',
-        priority: form.priority.toUpperCase(),
+        priority: form.priority,
+        address: form.address?.trim() ?? '',
+        district: form.district,
         peopleCount: form.peopleCount || 1,
         contactName: form.contactName?.trim() ?? '',
         contactPhone: form.contactPhone?.trim() ?? '',

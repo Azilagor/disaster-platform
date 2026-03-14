@@ -19,7 +19,7 @@
             <circle cx="14" cy="4" r="2" fill="currentColor" class="notification-dot" />
           </svg>
         </button>
-        <div class="user-menu">
+        <router-link to="/profile" class="user-menu">
           <img
             v-if="authStore.userAvatar"
             :src="authStore.userAvatar"
@@ -32,7 +32,7 @@
             <span class="user-name">{{ authStore.userName }}</span>
             <span class="user-role">{{ authStore.userRole }}</span>
           </div>
-        </div>
+        </router-link>
       </div>
     </div>
 
@@ -59,8 +59,8 @@
             </svg>
           </div>
         </div>
-        <div class="stat-number">48</div>
-        <p class="stat-description">За последние 7 дней</p>
+        <div class="stat-number">{{ requestsLoading ? '—' : requests.length }}</div>
+        <p class="stat-description">Моих заявок</p>
       </div>
       <div class="stat-card">
         <div class="stat-header">
@@ -141,13 +141,18 @@
             <option value="new">Новые</option>
           </select>
         </div>
-        <div class="request-list">
+        <div v-if="requestsLoading" class="request-list request-list-loading">Загрузка заявок...</div>
+        <div v-else-if="requestsError" class="request-list request-list-error">{{ requestsError }}</div>
+        <div v-else-if="displayedRequests.length === 0" class="request-list request-list-empty">
+          Нет заявок. <router-link to="/create-request">Создать запрос</router-link>
+        </div>
+        <div v-else class="request-list">
           <router-link
             v-for="req in displayedRequests"
             :key="req.id"
             :to="'/map?request=' + req.id"
             class="request-item"
-            :class="{ urgent: req.priority === 'urgent' }"
+            :class="{ urgent: req.priority === 'CRITICAL' }"
           >
             <div class="request-badge" :class="req.badgeClass">
               <svg
@@ -172,7 +177,7 @@
               </div>
               <div class="request-meta">
                 <span class="request-time">{{ req.time }}</span>
-                <span class="request-priority" :class="req.priority + '-priority'">{{
+                <span class="request-priority" :class="requestPriorityClass(req.priority)">{{
                   req.priorityLabel
                 }}</span>
               </div>
@@ -228,46 +233,68 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
+import { getMyRequests } from '../api/requests.js'
+import { PRIORITY_LABELS } from '../constants/requests.js'
 
 const authStore = useAuthStore()
 
 const requestsFilter = ref('all')
-const requests = ref([
-  {
-    id: 1,
-    title: 'Требуется медицинская помощь',
-    location: 'г. Алматы, ул. Абая, 150',
-    time: '15 мин назад',
-    priority: 'urgent',
-    priorityLabel: 'Срочно',
-    badgeClass: '',
-  },
-  {
-    id: 2,
-    title: 'Нужна эвакуация',
-    location: 'г. Алматы, мкр. Самал-2',
-    time: '1 ч назад',
-    priority: 'high',
-    priorityLabel: 'Высокий',
-    badgeClass: 'warning',
-  },
-  {
-    id: 3,
-    title: 'Продукты и вода',
-    location: 'г. Алматы, ул. Толе би, 59',
-    time: '2 ч назад',
-    priority: 'medium',
-    priorityLabel: 'Средний',
-    badgeClass: 'info',
-  },
-])
+const requests = ref([])
+const requestsLoading = ref(true)
+const requestsError = ref('')
+
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now - d
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  if (diffMins < 60) return `${diffMins} мин назад`
+  if (diffHours < 24) return `${diffHours} ч назад`
+  if (diffDays < 7) return `${diffDays} дн. назад`
+  return d.toLocaleDateString()
+}
+
+function priorityBadgeClass(priority) {
+  if (priority === 'CRITICAL') return ''
+  if (priority === 'HIGH') return 'warning'
+  return 'info'
+}
+
+function requestPriorityClass(priority) {
+  if (priority === 'CRITICAL') return 'urgent-priority'
+  return (priority || '').toLowerCase() + '-priority'
+}
+
+onMounted(async () => {
+  try {
+    const list = await getMyRequests()
+    requests.value = list.map((r) => ({
+      id: r.id,
+      title: r.title,
+      location: r.address,
+      time: formatTimeAgo(r.createdAt),
+      priority: r.priority,
+      priorityLabel: PRIORITY_LABELS[r.priority] ?? r.priority,
+      badgeClass: priorityBadgeClass(r.priority),
+      status: r.status,
+    }))
+  } catch (e) {
+    requestsError.value = e.message || 'Не удалось загрузить заявки'
+  } finally {
+    requestsLoading.value = false
+  }
+})
+
 const displayedRequests = computed(() => {
-  if (requestsFilter.value === 'urgent')
-    return requests.value.filter((r) => r.priority === 'urgent')
-  if (requestsFilter.value === 'new') return requests.value.filter((r) => r.time.includes('мин'))
-  return requests.value
+  let list = requests.value
+  if (requestsFilter.value === 'urgent') list = list.filter((r) => r.priority === 'CRITICAL')
+  if (requestsFilter.value === 'new') list = list.filter((r) => r.status === 'NEW')
+  return list
 })
 
 const volunteers = ref([
