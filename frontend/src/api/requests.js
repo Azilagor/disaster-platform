@@ -4,12 +4,17 @@ const REQUESTS = '/requests'
 
 /**
  * Мои заявки (созданные текущим пользователем).
- * Бэк: GET /requests/my → 200 [ Request, ... ]
- * @returns {Promise<Array<{ id, title, description, priority, status, address, district, problemType, createdAt, ... }>>}
+ * Бэк: GET /requests/my → 200 { items, total, page, limit }
+ * @returns {Promise<Array<...>>}
  */
-export async function getMyRequests() {
-  const res = await fetchWithAuth(`${REQUESTS}/my`)
-  return parseJsonResponse(res)
+export async function getMyRequests(params = {}) {
+  const q = new URLSearchParams()
+  if (params.page != null) q.set('page', params.page)
+  if (params.limit != null) q.set('limit', params.limit)
+  const query = q.toString()
+  const res = await fetchWithAuth(`${REQUESTS}/my${query ? '?' + query : ''}`)
+  const data = await parseJsonResponse(res)
+  return data.items ?? []
 }
 
 /**
@@ -38,5 +43,92 @@ export async function createRequest(data) {
       ...(data.contactComment && { contactComment: data.contactComment }),
     }),
   })
+  return parseJsonResponse(res)
+}
+
+export async function getRequests(params = {}) {
+  const q = new URLSearchParams()
+  ;['status', 'priority', 'problemType', 'district', 'search', 'page', 'limit'].forEach((key) => {
+    if (params[key] != null && params[key] !== '') q.set(key, params[key])
+  })
+  const query = q.toString()
+  const res = await fetchWithAuth(`${REQUESTS}${query ? '?' + query : ''}`)
+  return parseJsonResponse(res)
+}
+
+export async function getRequestsMap(params = {}) {
+  const q = new URLSearchParams()
+  ;['priority', 'problemType', 'district'].forEach((key) => {
+    if (params[key] != null && params[key] !== '') q.set(key, params[key])
+  })
+  const query = q.toString()
+  const res = await fetchWithAuth(`${REQUESTS}/map${query ? '?' + query : ''}`)
+  return parseJsonResponse(res)
+}
+
+/** Доступные заявки для волонтёра (опубликованные, на которые можно откликнуться). GET /requests/available */
+export async function getAvailableRequests(params = {}) {
+  const q = new URLSearchParams()
+  ;['priority', 'problemType', 'district', 'page', 'limit'].forEach((key) => {
+    if (params[key] != null && params[key] !== '') q.set(key, params[key])
+  })
+  const query = q.toString()
+  const res = await fetchWithAuth(`${REQUESTS}/available${query ? '?' + query : ''}`)
+  return parseJsonResponse(res)
+}
+
+export async function getRequestsAssigned(params = {}) {
+  const q = new URLSearchParams()
+  ;['status', 'priority', 'problemType', 'district', 'page', 'limit'].forEach((key) => {
+    if (params[key] != null && params[key] !== '') q.set(key, params[key])
+  })
+  const query = q.toString()
+  const res = await fetchWithAuth(`${REQUESTS}/assigned${query ? '?' + query : ''}`)
+  return parseJsonResponse(res)
+}
+
+export async function getRequest(id) {
+  const res = await fetchWithAuth(`${REQUESTS}/${id}`)
+  return parseJsonResponse(res)
+}
+
+export async function patchRequestStatus(id, status) {
+  const res = await fetchWithAuth(`${REQUESTS}/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  })
+  return parseJsonResponse(res)
+}
+
+export async function publishRequest(id) {
+  const res = await fetchWithAuth(`${REQUESTS}/${id}/publish`, { method: 'PATCH' })
+  return parseJsonResponse(res)
+}
+
+export async function unpublishRequest(id) {
+  const res = await fetchWithAuth(`${REQUESTS}/${id}/unpublish`, { method: 'PATCH' })
+  return parseJsonResponse(res)
+}
+
+export async function assignVolunteer(requestId, volunteerId) {
+  const res = await fetchWithAuth(`${REQUESTS}/${requestId}/assign`, {
+    method: 'POST',
+    body: JSON.stringify({ volunteerId }),
+  })
+  return parseJsonResponse(res)
+}
+
+export async function unassignVolunteer(requestId, volunteerId) {
+  const res = await fetchWithAuth(`${REQUESTS}/${requestId}/assign/${volunteerId}`, { method: 'DELETE' })
+  return parseJsonResponse(res)
+}
+
+export async function volunteerRespond(requestId) {
+  const res = await fetchWithAuth(`${REQUESTS}/${requestId}/volunteer`, { method: 'POST' })
+  return parseJsonResponse(res)
+}
+
+export async function volunteerLeave(requestId) {
+  const res = await fetchWithAuth(`${REQUESTS}/${requestId}/volunteer`, { method: 'DELETE' })
   return parseJsonResponse(res)
 }

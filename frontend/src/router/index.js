@@ -43,9 +43,33 @@ const routes = [
         component: () => import('../views/CreateRequestPage.vue'),
       },
       {
+        path: 'my-requests',
+        name: 'MyRequests',
+        component: () => import('../views/MyRequestsPage.vue'),
+      },
+      {
+        path: 'requests',
+        name: 'CoordinatorRequests',
+        component: () => import('../views/CoordinatorRequestsPage.vue'),
+        meta: { roles: ['COORDINATOR', 'ADMIN'] },
+      },
+      {
         path: 'volunteers',
         name: 'Volunteers',
         component: () => import('../views/VolunteersPage.vue'),
+        meta: { roles: ['COORDINATOR', 'ADMIN'] },
+      },
+      {
+        path: 'incidents',
+        name: 'Incidents',
+        component: () => import('../views/IncidentsPage.vue'),
+        meta: { roles: ['COORDINATOR', 'ADMIN'] },
+      },
+      {
+        path: 'tasks',
+        name: 'VolunteerTasks',
+        component: () => import('../views/VolunteerTasksPage.vue'),
+        meta: { roles: ['VOLUNTEER'] },
       },
       {
         path: 'profile',
@@ -74,12 +98,20 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const allowedRoles = to.meta.roles
   const authStore = useAuthStore()
   if (requiresAuth && !authStore.isAuthenticated) {
     next('/login')
-  } else {
-    next()
+    return
   }
+  if (allowedRoles?.length && authStore.user) {
+    const role = (authStore.user.role || '').toUpperCase()
+    if (!allowedRoles.includes(role)) {
+      next('/dashboard')
+      return
+    }
+  }
+  next()
 })
 
 export default router

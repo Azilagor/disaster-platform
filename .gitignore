@@ -38,3 +38,4 @@ temp
 /prisma/
 /prisma.config.ts
 /generated/prisma
+TASKS.md
