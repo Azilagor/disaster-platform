@@ -77,42 +77,82 @@
           Карта
         </router-link>
         <router-link
+          v-if="canCreateRequest"
           to="/create-request"
           class="nav-item"
           :class="{ active: $route.path === '/create-request' }"
           @click="sidebarOpen = false"
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M10 2v16M2 10h16" />
           </svg>
           Создать запрос
         </router-link>
         <router-link
+          v-if="isUser"
+          to="/my-requests"
+          class="nav-item"
+          :class="{ active: $route.path === '/my-requests' }"
+          @click="sidebarOpen = false"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6" />
+          </svg>
+          Мои заявки
+        </router-link>
+        <router-link
+          v-if="isCoordinator"
+          to="/requests"
+          class="nav-item"
+          :class="{ active: $route.path === '/requests' }"
+          @click="sidebarOpen = false"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6" />
+          </svg>
+          Заявки
+        </router-link>
+        <router-link
+          v-if="isCoordinator"
           to="/volunteers"
           class="nav-item"
           :class="{ active: $route.path === '/volunteers' }"
           @click="sidebarOpen = false"
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 19v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
             <circle cx="10" cy="5" r="4" />
           </svg>
           Волонтёры
-          <span class="badge">3</span>
+        </router-link>
+        <router-link
+          v-if="isCoordinator"
+          to="/incidents"
+          class="nav-item"
+          :class="{ active: $route.path === '/incidents' }"
+          @click="sidebarOpen = false"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+          </svg>
+          Инциденты
+        </router-link>
+        <router-link
+          v-if="isVolunteer"
+          to="/tasks"
+          class="nav-item"
+          :class="{ active: $route.path === '/tasks' }"
+          @click="sidebarOpen = false"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+            <path d="M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2z" />
+          </svg>
+          Мои задачи
         </router-link>
         <router-link to="/profile" class="nav-item" :class="{ active: $route.path === '/profile' }" @click="sidebarOpen = false">
           <svg
@@ -141,13 +181,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth.js'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const sidebarOpen = ref(false)
+
+const role = computed(() => (authStore.user?.role || '').toUpperCase())
+const isCoordinator = computed(() => role.value === 'COORDINATOR' || role.value === 'ADMIN')
+const isVolunteer = computed(() => role.value === 'VOLUNTEER')
+const isUser = computed(() => role.value === 'USER')
+const canCreateRequest = computed(() => role.value === 'USER' || isCoordinator.value)
 
 function logout() {
   authStore.logout()
