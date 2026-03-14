@@ -3,184 +3,128 @@
     <div class="topbar">
       <div class="topbar-left">
         <h1>Волонтёры</h1>
-        <p class="text-muted">Поиск и назначение волонтёров на запросы</p>
+        <p class="text-muted">Поиск и назначение волонтёров на заявки (назначение — в разделе «Заявки»)</p>
       </div>
     </div>
 
-    <div class="volunteers-toolbar">
+    <div class="toolbar">
       <div class="search-box">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 20 20"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <circle cx="9" cy="9" r="6" />
-          <path d="M14 14l4 4" />
-        </svg>
         <input
-          v-model="searchQuery"
+          v-model="filters.search"
           type="text"
-          placeholder="Поиск по имени или навыку..."
+          placeholder="Поиск по имени, email, телефону..."
           class="form-control"
-          style="border: none; padding: 0"
         />
       </div>
-      <div class="toolbar-filters">
-        <select v-model="filterSkill" class="form-control">
-          <option value="">Все навыки</option>
-          <option value="medical">Медицина</option>
-          <option value="logistics">Логистика</option>
-          <option value="evacuation">Эвакуация</option>
-          <option value="psychology">Психология</option>
-        </select>
-        <select v-model="filterStatus" class="form-control">
-          <option value="">Любой статус</option>
-          <option value="online">Онлайн</option>
-          <option value="away">Отошёл</option>
-          <option value="offline">Офлайн</option>
-        </select>
-      </div>
+      <select v-model="filters.district" class="form-control">
+        <option value="">Все районы</option>
+        <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] }}</option>
+      </select>
+      <button type="button" class="btn btn-primary" @click="loadVolunteers">Обновить</button>
     </div>
 
-    <div class="volunteers-grid">
-      <div v-for="v in filteredVolunteers" :key="v.id" class="volunteer-card">
-        <div class="volunteer-card-header">
-          <img :src="v.avatar" alt="" class="volunteer-card-avatar" width="64" height="64" />
-          <span class="status-badge" :class="v.status">{{ v.statusLabel }}</span>
-        </div>
-        <div class="volunteer-card-body">
-          <h3>{{ v.name }}</h3>
-          <p class="volunteer-email">{{ v.email }}</p>
-          <p class="volunteer-phone">{{ v.phone }}</p>
-          <div class="volunteer-skills-list">
-            <span v-for="s in v.skills" :key="s" class="skill-badge">{{ s }}</span>
-          </div>
-          <div class="volunteer-meta">
-            <div class="meta-item">
-              <svg width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="currentColor">
-                <path d="M7 1C4.79 1 3 2.79 3 5C3 8.25 7 13 7 13s4-4.75 4-8c0-2.21-1.79-4-4-4z" />
-                <circle cx="7" cy="5" r="1.5" />
-              </svg>
-              {{ v.location }}
-            </div>
-            <div class="meta-item">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-                <path d="M10 18s8-4 8-10a8 8 0 1 0-16 0c0 6 8 10 8 10z" />
-              </svg>
-              Выполнено заданий: {{ v.completedTasks }}
-            </div>
-          </div>
-          <div class="volunteer-rating">
-            <span class="rating-value">★ {{ v.rating }}</span>
-            <span class="rating-count">({{ v.reviewsCount }} отзывов)</span>
-          </div>
-          <div v-if="v.currentTask" class="current-task">
-            <span class="task-label">Сейчас:</span>
-            <span class="task-name">{{ v.currentTask }}</span>
-          </div>
-        </div>
-        <div class="volunteer-card-footer">
-          <button type="button" class="btn btn-secondary btn-sm">Написать</button>
-          <button type="button" class="btn btn-primary btn-sm">Назначить</button>
-        </div>
-      </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Имя</th>
+            <th>Email</th>
+            <th>Телефон</th>
+            <th>Район</th>
+            <th>Заявок</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="v in volunteers" :key="v.id">
+            <td>
+              <div class="volunteer-name-cell">
+                <img
+                  v-if="v.avatarUrl"
+                  :src="v.avatarUrl"
+                  alt=""
+                  class="volunteer-avatar"
+                  width="36"
+                  height="36"
+                />
+                <span>{{ v.firstName }} {{ v.lastName }}</span>
+              </div>
+            </td>
+            <td>{{ v.email }}</td>
+            <td>{{ v.phone || '—' }}</td>
+            <td>{{ DISTRICT_LABELS[v.district] || v.district || '—' }}</td>
+            <td>{{ v._count?.volunteerRequests ?? 0 }}</td>
+            <td>
+              <router-link :to="'/requests'" class="btn btn-sm btn-outline">Назначить на заявку</router-link>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-if="loading" class="text-muted">Загрузка...</p>
+      <p v-else-if="!volunteers.length" class="text-muted">Нет волонтёров</p>
     </div>
 
-    <div class="pagination">
-      <button type="button" class="pagination-btn" :disabled="page <= 1" @click="page--">‹</button>
-      <span class="pagination-dots">1 из {{ totalPages }}</span>
-      <button type="button" class="pagination-btn" :disabled="page >= totalPages" @click="page++">
-        ›
-      </button>
+    <div v-if="totalPages > 1" class="pagination">
+      <button type="button" class="btn btn-sm btn-outline" :disabled="filters.page <= 1" @click="filters.page--">‹</button>
+      <span class="pagination-info">{{ filters.page }} из {{ totalPages }}</span>
+      <button type="button" class="btn btn-sm btn-outline" :disabled="filters.page >= totalPages" @click="filters.page++">›</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-const searchQuery = ref('')
-const filterSkill = ref('')
-const filterStatus = ref('')
-const page = ref(1)
+import { ref, reactive, watch, computed } from 'vue'
+import { getVolunteers } from '../api/users.js'
+import { withLoading } from '../stores/loading.js'
+import { ALLOWED_DISTRICTS, DISTRICT_LABELS } from '../constants/requests.js'
 
-const volunteers = ref([
-  {
-    id: 1,
-    name: 'Алексей Козлов',
-    email: 'aleksey@example.com',
-    phone: '+7 777 111-22-33',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=v1',
-    skills: ['Медицина', 'Первая помощь'],
-    location: 'Алматы',
-    status: 'online',
-    statusLabel: 'Онлайн',
-    rating: '4.9',
-    reviewsCount: 24,
-    completedTasks: 18,
-    currentTask: 'Запрос #1247',
-  },
-  {
-    id: 2,
-    name: 'Мария Семёнова',
-    email: 'maria@example.com',
-    phone: '+7 701 222-33-44',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=v2',
-    skills: ['Логистика', 'Транспорт'],
-    location: 'Алматы',
-    status: 'away',
-    statusLabel: 'Отошёл',
-    rating: '4.8',
-    reviewsCount: 12,
-    completedTasks: 9,
-    currentTask: null,
-  },
-  {
-    id: 3,
-    name: 'Дмитрий Волков',
-    email: 'dmitry@example.com',
-    phone: '+7 705 333-44-55',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=v3',
-    skills: ['Эвакуация'],
-    location: 'Алматы',
-    status: 'online',
-    statusLabel: 'Онлайн',
-    rating: '5.0',
-    reviewsCount: 31,
-    completedTasks: 22,
-    currentTask: null,
-  },
-  {
-    id: 4,
-    name: 'Анна Петрова',
-    email: 'anna@example.com',
-    phone: '+7 702 444-55-66',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=v4',
-    skills: ['Психология'],
-    location: 'Алматы',
-    status: 'offline',
-    statusLabel: 'Офлайн',
-    rating: '4.7',
-    reviewsCount: 8,
-    completedTasks: 5,
-    currentTask: null,
-  },
-])
+const loading = ref(false)
+const volunteers = ref([])
+const total = ref(0)
+const filters = reactive({ search: '', district: '', page: 1, limit: 20 })
 
-const filteredVolunteers = computed(() => {
-  let list = volunteers.value
-  const q = searchQuery.value.toLowerCase()
-  if (q)
-    list = list.filter(
-      (v) => v.name.toLowerCase().includes(q) || v.skills.some((s) => s.toLowerCase().includes(q))
-    )
-  if (filterSkill.value)
-    list = list.filter((v) => v.skills.some((s) => s.toLowerCase().includes(filterSkill.value)))
-  if (filterStatus.value) list = list.filter((v) => v.status === filterStatus.value)
-  return list
-})
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / filters.limit)))
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredVolunteers.value.length / 8)))
+async function loadVolunteers() {
+  loading.value = true
+  try {
+    const params = { page: filters.page, limit: filters.limit }
+    if (filters.search?.trim()) params.search = filters.search.trim()
+    if (filters.district) params.district = filters.district
+    const data = await withLoading(() => getVolunteers(params))
+    volunteers.value = data.items ?? []
+    total.value = data.total ?? 0
+  } catch (e) {
+    volunteers.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(
+  () => [filters.search, filters.district, filters.page],
+  () => loadVolunteers(),
+  { immediate: true }
+)
 </script>
+
+<style scoped>
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+.search-box input { min-width: 200px; }
+.table-wrap { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th,
+.data-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #eee; }
+.data-table th { font-weight: 600; }
+.volunteer-name-cell { display: flex; align-items: center; gap: 0.5rem; }
+.volunteer-avatar { border-radius: 50%; object-fit: cover; }
+.pagination { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; }
+.pagination-info { font-size: 0.9rem; color: #666; }
+.text-muted { color: #666; font-size: 0.95rem; margin: 0; }
+</style>
