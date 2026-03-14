@@ -42,6 +42,22 @@ export const PRIORITY_LABELS = {
   LOW: 'Низкий',
 }
 
+/** Подписи статусов заявок */
+export const REQUEST_STATUS_LABELS = {
+  NEW: 'Новая',
+  IN_PROGRESS: 'В работе',
+  DONE: 'Выполнена',
+  CANCELLED: 'Отменена',
+}
+
+/** Допустимые переходы статусов заявок: текущий -> [следующие] */
+export const STATUS_TRANSITIONS = {
+  NEW: ['IN_PROGRESS', 'CANCELLED'],
+  IN_PROGRESS: ['DONE', 'CANCELLED', 'NEW'],
+  DONE: [],
+  CANCELLED: [],
+}
+
 /** Подписи районов для UI */
 export const DISTRICT_LABELS = {
   ALMALYNSKIY: 'Алмалинский',

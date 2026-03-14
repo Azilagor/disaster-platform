@@ -14,7 +14,7 @@ const { PrismaPg } = require("@prisma/adapter-pg");
 // ==============================
 // Добавь в .env:
 //   ADMIN_EMAIL=admin@example.com
-//   ADMIN_PASSWORD=SuperSecret123!
+//   ADMIN_PASSWORD=<надёжный пароль 8+ символов>
 //   ADMIN_FIRST_NAME=Admin
 //   ADMIN_LAST_NAME=System
 //   ADMIN_PHONE=+70000000000

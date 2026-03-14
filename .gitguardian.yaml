@@ -1,0 +1,4 @@
+# GitGuardian: ignore test files that use fake password-like strings for validation tests
+version: 2
+paths-ignore:
+  - "frontend/src/utils/validation.spec.js"

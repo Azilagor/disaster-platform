@@ -148,3 +148,28 @@ export function validateDistrict(value) {
   if (!ALLOWED_DISTRICTS.includes(v)) return 'Недопустимый район'
   return null
 }
+
+/**
+ * Валидация заголовка заявки (по API: 5–200 символов)
+ * @param {string} value
+ * @returns {string|null} null если ОК, иначе текст ошибки
+ */
+export function validateRequestTitle(value) {
+  const v = trimValue(value)
+  if (!v) return 'Заголовок обязателен'
+  if (v.length < 5) return 'Заголовок: от 5 до 200 символов'
+  if (v.length > 200) return 'Заголовок: от 5 до 200 символов'
+  return null
+}
+
+/**
+ * Валидация описания заявки (по API: минимум 50 символов)
+ * @param {string} value
+ * @returns {string|null} null если ОК, иначе текст ошибки
+ */
+export function validateRequestDescription(value) {
+  const v = trimValue(value)
+  if (!v) return 'Описание обязательно'
+  if (v.length < 50) return 'Описание должно быть минимум 50 символов'
+  return null
+}
