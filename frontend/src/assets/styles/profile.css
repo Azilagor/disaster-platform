@@ -150,6 +150,44 @@
   color: var(--gray-900);
 }
 
+/* Profile edit form */
+.profile-form {
+  padding: var(--spacing-xl);
+}
+
+.profile-form .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.profile-form .form-group-full {
+  grid-column: 1 / -1;
+}
+
+.profile-form .form-actions {
+  margin-top: var(--spacing-md);
+}
+
+.profile-form .form-error {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--error, #dc2626);
+  margin-top: var(--spacing-sm);
+}
+
+.profile-form .form-success {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--success, #16a34a);
+  margin-top: var(--spacing-sm);
+}
+
+.profile-readonly-meta {
+  border-top: 1px solid var(--gray-200);
+}
+
 /* Profile Stats */
 .profile-stats {
   display: flex;

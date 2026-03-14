@@ -168,6 +168,18 @@
           </svg>
           Профиль
         </router-link>
+        <router-link
+          v-if="authStore.isAdmin"
+          to="/admin"
+          class="nav-item"
+          :class="{ active: $route.path.startsWith('/admin') }"
+          @click="sidebarOpen = false"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 4h14M3 10h14M3 16h14" />
+          </svg>
+          Админка
+        </router-link>
       </nav>
       <div class="sidebar-footer">
         <a href="#" class="nav-item" @click.prevent="logout">Выйти</a>
