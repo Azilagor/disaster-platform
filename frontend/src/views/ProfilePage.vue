@@ -101,7 +101,7 @@
                 </svg>
               </div>
               <div class="stat-content">
-                <div class="stat-value">12</div>
+                <div class="stat-value">{{ myRequests.length }}</div>
                 <div class="stat-label">Созданных запросов</div>
               </div>
             </div>
@@ -125,6 +125,29 @@
               </div>
             </div>
           </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Мои заявки</h2>
+          </div>
+          <div v-if="myRequestsLoading" class="profile-requests-loading">Загрузка...</div>
+          <div v-else-if="myRequestsError" class="profile-requests-error">{{ myRequestsError }}</div>
+          <div v-else-if="myRequests.length === 0" class="profile-requests-empty">
+            Вы пока не создавали заявок. <router-link to="/create-request">Создать запрос</router-link>
+          </div>
+          <ul v-else class="profile-requests-list">
+            <li v-for="req in myRequests" :key="req.id" class="profile-request-item">
+              <router-link :to="'/map?request=' + req.id" class="profile-request-link">
+                <span class="profile-request-title">{{ req.title }}</span>
+                <span class="profile-request-meta">
+                  {{ problemTypeLabels[req.problemType] ?? req.problemType }} ·
+                  {{ priorityLabels[req.priority] ?? req.priority }} ·
+                  {{ statusLabels[req.status] ?? req.status }}
+                </span>
+                <span class="profile-request-address">{{ req.address }}</span>
+              </router-link>
+            </li>
+          </ul>
         </div>
         <div class="card">
           <div class="card-header">
@@ -177,10 +200,35 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
+import { getMyRequests } from '../api/requests.js'
+import { PROBLEM_TYPE_LABELS, PRIORITY_LABELS } from '../constants/requests.js'
 
 const authStore = useAuthStore()
+
+const myRequests = ref([])
+const myRequestsLoading = ref(true)
+const myRequestsError = ref('')
+
+const problemTypeLabels = PROBLEM_TYPE_LABELS
+const priorityLabels = PRIORITY_LABELS
+const statusLabels = {
+  NEW: 'Новый',
+  IN_PROGRESS: 'В работе',
+  DONE: 'Выполнен',
+  CANCELLED: 'Отменён',
+}
+
+onMounted(async () => {
+  try {
+    myRequests.value = await getMyRequests()
+  } catch (e) {
+    myRequestsError.value = e.message || 'Не удалось загрузить заявки'
+  } finally {
+    myRequestsLoading.value = false
+  }
+})
 
 const skills = ref(['Первая помощь', 'Логистика'])
 const timeline = ref([

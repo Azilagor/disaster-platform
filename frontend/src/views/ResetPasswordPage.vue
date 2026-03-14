@@ -15,7 +15,15 @@
           </router-link>
         </div>
 
-        <div v-if="!tokenFromQuery" class="auth-form-wrapper">
+        <div v-if="errorFromQuery" class="auth-form-wrapper">
+          <h1>{{ errorFromQuery.title }}</h1>
+          <p>{{ errorFromQuery.message }}</p>
+          <div class="reset-password-links">
+            <router-link to="/login" class="btn btn-primary">Запросить новую ссылку</router-link>
+            <router-link to="/login" class="btn btn-outline">На логин</router-link>
+          </div>
+        </div>
+        <div v-else-if="!tokenFromQuery" class="auth-form-wrapper">
           <h1>Неверная ссылка</h1>
           <p>Ссылка для сброса пароля отсутствует или устарела. Запросите новую.</p>
           <router-link to="/login" class="btn btn-primary">На страницу входа</router-link>
@@ -91,6 +99,23 @@ const authStore = useAuthStore()
 
 const tokenFromQuery = computed(() => route.query.token || '')
 
+const errorFromQuery = computed(() => {
+  const err = route.query.error
+  if (err === 'invalidToken') {
+    return {
+      title: 'Недействительная ссылка',
+      message: 'Ссылка для сброса пароля недействительна или истекла. Запросите новую ссылку на странице входа («Забыли пароль?»).',
+    }
+  }
+  if (err === 'server') {
+    return {
+      title: 'Ошибка сервера',
+      message: 'Не удалось проверить ссылку. Попробуйте позже или запросите новую ссылку для сброса пароля.',
+    }
+  }
+  return null
+})
+
 const form = ref({ password: '', passwordConfirm: '' })
 const errors = ref({})
 const errorMessage = ref('')
@@ -119,6 +144,7 @@ const handleSubmit = async () => {
       router.push('/dashboard')
     } else {
       success.value = 'Пароль успешно изменён. Войдите с новым паролем.'
+      router.push('/login')
     }
   } catch (error) {
     errorMessage.value = error.message || 'Не удалось сохранить пароль. Ссылка могла устареть.'
@@ -149,5 +175,8 @@ const handleSubmit = async () => {
 }
 .form-footer .link:hover {
   text-decoration: underline;
+}
+.reset-password-links {
+  display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem;
 }
 </style>
