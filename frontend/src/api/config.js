@@ -4,7 +4,7 @@
  * Для локального бэка задайте VITE_API_URL=/api в .env.local.
  */
 export const API_BASE_URL =
-  import.meta.env.VITE_API_URL ?? 'https://platform.oyustudio.kz/api'
+  import.meta.env.VITE_API_URL ?? 'http://localhost:4999/api'
 
 /** Базовый URL бэкенда без суффикса /api (для статики вроде /uploads/avatars/...) */
 export function getUploadsBaseUrl() {

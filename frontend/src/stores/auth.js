@@ -4,10 +4,10 @@ import * as authApi from '../api/auth.js'
 import { getUploadsFullUrl } from '../api/config.js'
 
 const ROLE_LABELS = {
-  user: 'Пользователь',
-  volunteer: 'Волонтёр',
-  coordinator: 'Координатор',
-  admin: 'Администратор',
+  USER: 'Пользователь',
+  VOLUNTEER: 'Волонтёр',
+  COORDINATOR: 'Координатор',
+  ADMIN: 'Администратор',
 }
 
 export const useAuthStore = defineStore('auth', () => {
