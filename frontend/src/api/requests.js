@@ -162,3 +162,17 @@ export async function deleteRequest(id) {
   const res = await fetchWithAuth(`${REQUESTS}/${id}`, { method: 'DELETE' })
   return parseJsonResponse(res)
 }
+
+/**
+ * Привязать/открепить заявку от инцидента.
+ * PATCH /requests/:id/incident
+ * @param {number} requestId
+ * @param {number|null} incidentId - null чтобы открепить
+ */
+export async function linkRequestToIncident(requestId, incidentId) {
+  const res = await fetchWithAuth(`${REQUESTS}/${requestId}/incident`, {
+    method: 'PATCH',
+    body: JSON.stringify({ incidentId }),
+  })
+  return parseJsonResponse(res)
+}

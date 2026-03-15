@@ -107,6 +107,12 @@
                 />
                 <div v-if="formErrors.address" class="invalid-feedback">{{ formErrors.address }}</div>
               </div>
+
+              <!-- Точка на карте (необязательно) -->
+              <div class="form-group full-width">
+                <label>Точка на карте <span class="field-optional">(необязательно)</span></label>
+                <MapPicker v-model="mapCoords" />
+              </div>
               <div class="form-group">
                 <label for="district">Район</label>
                 <select id="district" v-model="form.district" class="form-control" :class="{ 'is-invalid': formErrors.district }">
@@ -230,6 +236,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
+import MapPicker from '../components/MapPicker.vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '../components/layout/AppHeader.vue'
 import AppFooter from '../components/layout/AppFooter.vue'
@@ -253,6 +260,8 @@ const router = useRouter()
 const currentStep = ref(1)
 const submitting = ref(false)
 const submitError = ref('')
+const mapCoords = ref({ lat: null, lng: null })
+
 const form = reactive({
   problemType: '',
   title: '',
@@ -321,6 +330,8 @@ async function submitRequest() {
         contactName: form.contactName?.trim() ?? '',
         contactPhone: form.contactPhone?.trim() ?? '',
         contactComment: form.contactComment?.trim() || undefined,
+        latitude: mapCoords.value.lat || undefined,
+        longitude: mapCoords.value.lng || undefined,
       })
     )
     router.push('/map')

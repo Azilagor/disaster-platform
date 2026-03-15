@@ -1,689 +1,76 @@
 const express = require("express");
 const router = express.Router();
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 const { auth } = require("../middleware/auth");
-const prisma = require("../prismaClient");
-
-const normalizeEmail = require("../utils/normalizeEmail");
-const normalizePhone = require("../utils/normalizePhone");
-
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
-
-const {
-  sendVerificationEmail,
-  sendResetPasswordEmail,
-} = require("../services/emailService");
-
-const { generateToken, hashToken } = require("../utils/emailTokens");
-
-const validatePassword = require("../utils/validatePassword");
 const {
   forgotPasswordLimiter,
   resetPasswordLimiter,
 } = require("../middleware/rateLimiters");
+const controller = require("../controllers/auth.controller");
 
-const ALLOWED_SELF_REGISTER_ROLES = ["USER", "VOLUNTEER", "COORDINATOR"];
-const ROLE_MAP = {
-  user: "USER",
-  volunteer: "VOLUNTEER",
-  coordinator: "COORDINATOR",
-  USER: "USER",
-  VOLUNTEER: "VOLUNTEER",
-  COORDINATOR: "COORDINATOR",
-};
 
-// GET /auth/me
-router.get("/me", auth, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        role: true,
-        isEmailVerified: true,
-        telegramUsername: true,
-        telegramChatId: true,
-        district: true,
-        avatarUrl: true,
-        createdAt: true,
-      },
-    });
+// Auth Routes
+// Только маршруты — вся логика в controller и service
 
-    if (!user) {
-      return res.status(404).json({ message: "Пользователь не найден" });
-    }
 
-    return res.json(user);
-  } catch (err) {
-    console.error("/me error:", err);
-    return res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
+// Профиль текущего пользователя
+router.get("/me",    auth, controller.getMe);
+router.put("/me",    auth, controller.updateMe);
+router.delete("/me", auth, controller.deleteMe);
 
-// PUT /auth/me
-router.put("/me", auth, async (req, res) => {
-  try {
-    let { firstName, lastName, phone, telegramUsername, district } = req.body || {};
+// Регистрация и верификация email
+router.post("/register",             controller.register);
+router.get("/verify-email",          controller.verifyEmail);
+router.post("/resend-verification",  controller.resendVerification);
 
-    const data = {};
+// Вход
+router.post("/login", controller.login);
 
-    if (firstName !== undefined) {
-      firstName = String(firstName).trim();
-      if (firstName.length < 2) return res.status(400).json({ message: "Имя слишком короткое" });
-      data.firstName = firstName;
-    }
+// Сброс пароля
+router.post("/forgot-password", forgotPasswordLimiter, controller.forgotPassword);
+router.get("/reset-password",   controller.resetPasswordRedirect);
+router.post("/reset-password",  resetPasswordLimiter, controller.resetPassword);
 
-    if (lastName !== undefined) {
-      lastName = String(lastName).trim();
-      if (lastName.length < 2) return res.status(400).json({ message: "Фамилия слишком короткая" });
-      data.lastName = lastName;
-    }
+// Аватар
+router.post("/avatar", auth, _buildAvatarUpload(), controller.uploadAvatar);
 
-    if (phone !== undefined) {
-      phone = normalizePhone(phone);
-      data.phone = phone;
-    }
 
-    if (telegramUsername !== undefined) {
-      telegramUsername = String(telegramUsername).trim();
-      if (!telegramUsername) {
-        data.telegramUsername = null;
-      } else {
-        telegramUsername = telegramUsername.replace(/^@+/, "");
-        if (!/^[a-zA-Z0-9_]{5,32}$/.test(telegramUsername)) {
-          return res.status(400).json({ message: "Telegram username некорректный (допустимы латиница/цифры/_ , 5-32)" });
-        }
-        data.telegramUsername = telegramUsername;
-      }
-    }
+// Внутренняя функция настройки multer для аватаров
 
-    if (district !== undefined) {
-      if (!district) {
-        data.district = null;
-      } else {
-        const dist = String(district).toUpperCase();
-        const allowed = [
-          "ALMALYNSKIY", "AUEZOVSKIY", "BOSTANDYQ", "MEDEU", "NAURYZBAY", "TURKSIB", "ZHETYSU", "ALATAU"
-        ];
-        if (!allowed.includes(dist)) {
-          return res.status(400).json({ message: "Неверный район" });
-        }
-        data.district = dist;
-      }
-    }
 
-    const updated = await prisma.user.update({
-      where: { id: req.user.id },
-      data,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        role: true,
-        isEmailVerified: true,
-        telegramUsername: true,
-        district: true,
-        avatarUrl: true,
-        createdAt: true,
-      },
-    });
+function _buildAvatarUpload() {
+  const AVATAR_DIR = path.join(__dirname, "..", "..", "uploads", "avatars");
+  fs.mkdirSync(AVATAR_DIR, { recursive: true });
 
-    return res.json({ message: "Профиль обновлён", user: updated });
-  } catch (err) {
-    if (err.code === "P2002") {
-      return res.status(400).json({ message: "Телефон уже используется" });
-    }
-    console.error("PUT /me error:", err);
-    return res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
+  const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, AVATAR_DIR),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname || "").toLowerCase();
+      const safeExt = [".jpg", ".jpeg", ".png", ".webp"].includes(ext) ? ext : ".jpg";
+      cb(null, `u${req.user.id}_${Date.now()}${safeExt}`);
+    },
+  });
 
-// DELETE /auth/me
-router.delete("/me", auth, async (req, res) => {
-  try {
-    const { password } = req.body;
+  const fileFilter = (_req, file, cb) => {
+    const ok = ["image/jpeg", "image/png", "image/webp"].includes(file.mimetype);
+    cb(ok ? null : new Error("Неверный формат файла"), ok);
+  };
 
-    if (!password) {
-      return res.status(400).json({ message: "password обязателен" });
-    }
+  const upload = multer({ storage, fileFilter, limits: { fileSize: 2 * 1024 * 1024 } });
 
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: { id: true, passwordHash: true },
-    });
-
-    if (!user) {
-      return res.status(404).json({ message: "Пользователь не найден" });
-    }
-
-    const isValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isValid) {
-      return res.status(400).json({ message: "Неверный пароль" });
-    }
-
-    await prisma.$transaction([
-      prisma.requestVolunteer.deleteMany({ where: { volunteerId: user.id } }),
-      prisma.user.delete({ where: { id: user.id } }),
-    ]);
-
-    return res.json({ message: "Аккаунт удалён" });
-  } catch (err) {
-    console.error("DELETE /me error:", err);
-    return res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
-
-// POST /auth/register
-router.post("/register", async (req, res) => {
-  try {
-    let { firstName, lastName, email, phone, password, role } = req.body;
-
-    if (!firstName || !lastName || !email || !phone || !password) {
-      return res.status(400).json({
-        message: "firstName, lastName, email, phone и password обязательные поля",
-      });
-    }
-
-    email = normalizeEmail(email);
-    phone = normalizePhone(phone);
-
-    const mappedRole = ROLE_MAP[role] || "USER";
-    const safeRole = ALLOWED_SELF_REGISTER_ROLES.includes(mappedRole)
-      ? mappedRole
-      : "USER";
-
-    const existingEmail = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true },
-    });
-    if (existingEmail) {
-      return res.status(400).json({ message: "Email уже зарегистрирован" });
-    }
-
-    const existingPhone = await prisma.user.findUnique({
-      where: { phone },
-      select: { id: true },
-    });
-    if (existingPhone) {
-      return res.status(400).json({ message: "Телефон уже зарегистрирован" });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        phone,
-        passwordHash,
-        role: safeRole,
-      },
-      select: {
-        id: true,
-        email: true,
-        isEmailVerified: true,
-      },
-    });
-
-    const rawToken = generateToken();
-    const tokenHash = hashToken(rawToken);
-
-    await prisma.emailVerificationToken.upsert({
-      where: { userId: user.id },
-      update: {
-        tokenHash,
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-      },
-      create: {
-        userId: user.id,
-        tokenHash,
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-      },
-    });
-
-    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify-email?token=${rawToken}`;
-    await sendVerificationEmail(user.email, verifyLink);
-
-    return res.status(201).json({
-      message: "Регистрация успешна. Проверьте почту для подтверждения.",
-      email: user.email,
-    });
-  } catch (err) {
-    if (err.code === "P2002") {
-      return res.status(400).json({
-        message: "Email или телефон уже зарегистрирован",
-      });
-    }
-
-    console.error("REGISTER error:", err);
-    return res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
-
-// GET /auth/verify-email
-router.get("/verify-email", async (req, res) => {
-  try {
-    const rawToken = req.query.token;
-
-    if (!rawToken || typeof rawToken !== "string") {
-      return res.redirect(
-        `${process.env.FRONTEND_LOGIN_URL}?error=invalidToken`
-      );
-    }
-
-    const tokenHash = hashToken(rawToken);
-
-    const record = await prisma.emailVerificationToken.findFirst({
-      where: { tokenHash },
-      select: { userId: true, expiresAt: true },
-    });
-
-    if (!record) {
-      return res.redirect(
-        `${process.env.FRONTEND_LOGIN_URL}?error=invalidToken`
-      );
-    }
-
-    if (record.expiresAt < new Date()) {
-      await prisma.emailVerificationToken
-        .delete({ where: { userId: record.userId } })
-        .catch(() => {});
-
-      return res.redirect(
-        `${process.env.FRONTEND_LOGIN_URL}?error=tokenExpired`
-      );
-    }
-
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: record.userId },
-        data: { isEmailVerified: true },
-      }),
-      prisma.emailVerificationToken.delete({
-        where: { userId: record.userId },
-      }),
-    ]);
-
-    return res.redirect(
-      `${process.env.FRONTEND_LOGIN_URL}?verified=1`
-    );
-  } catch (err) {
-    console.error("VERIFY EMAIL ERROR:", err);
-    return res.redirect(
-      `${process.env.FRONTEND_LOGIN_URL}?error=server`
-    );
-  }
-});
-
-// POST /auth/resend-verification
-router.post("/resend-verification", async (req, res) => {
-  try {
-    let { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: "email обязателен" });
-    }
-
-    email = normalizeEmail(email);
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, email: true, isEmailVerified: true },
-    });
-
-    const safeResponse = {
-      message: "Если аккаунт существует — мы отправили письмо для подтверждения",
-    };
-
-    if (!user) return res.json(safeResponse);
-
-    if (user.isEmailVerified) {
-      return res.status(400).json({ message: "Email уже подтверждён" });
-    }
-
-    const rawToken = generateToken();
-    const tokenHash = hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
-    await prisma.emailVerificationToken.upsert({
-      where: { userId: user.id },
-      update: { tokenHash, expiresAt },
-      create: { userId: user.id, tokenHash, expiresAt },
-    });
-
-    const verifyLink = `${process.env.APP_BASE_URL}/api/auth/verify-email?token=${rawToken}`;
-    await sendVerificationEmail(user.email, verifyLink);
-
-    return res.json(safeResponse);
-  } catch (err) {
-    console.error("RESEND VERIFICATION error:", err);
-    return res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
-
-// POST /auth/login
-router.post("/login", async (req, res) => {
-  try {
-    let { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ message: "email и пароль обязательные поля" });
-    }
-
-    email = normalizeEmail(email);
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        role: true,
-        passwordHash: true,
-        isEmailVerified: true,
-      },
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: "Неверный email или пароль" });
-    }
-
-    const isValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isValid) {
-      return res.status(400).json({ message: "Неверный email или пароль" });
-    }
-
-    if (!user.isEmailVerified) {
-      return res.status(403).json({
-        code: "EMAIL_NOT_VERIFIED",
-        message: "Подтвердите email. Мы можем отправить письмо повторно.",
-      });
-    }
-
-    const payload = { userId: user.id };
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-
-    return res.status(200).json({
-      message: "Успешный вход",
-      user: {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        isEmailVerified: user.isEmailVerified,
-      },
-      token,
-    });
-  } catch (err) {
-    console.error("LOGIN error:", err);
-    return res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
-
-// POST /auth/forgot-password
-router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
-  try {
-    let { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: "email обязателен" });
-    }
-
-    email = normalizeEmail(email);
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, email: true },
-    });
-
-    const safeResponse = {
-      message: "Если аккаунт существует — мы отправили письмо для сброса пароля",
-    };
-
-    if (!user) {
-      return res.json(safeResponse);
-    }
-
-    const rawToken = generateToken();
-    const tokenHash = hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
-    await prisma.passwordResetToken.upsert({
-      where: { userId: user.id },
-      update: { tokenHash, expiresAt },
-      create: { userId: user.id, tokenHash, expiresAt },
-    });
-
-    const resetLink = `${process.env.APP_BASE_URL}/api/auth/reset-password?token=${rawToken}`;
-    await sendResetPasswordEmail(user.email, resetLink);
-
-    return res.json(safeResponse);
-  } catch (err) {
-    console.error("FORGOT PASSWORD error:", err);
-    return res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
-
-// GET /auth/reset-password
-router.get("/reset-password", (req, res) => {
-  try {
-    const token = req.query.token;
-
-    if (!token || typeof token !== "string") {
-      return res.redirect(
-        `${process.env.FRONTEND_BASE_URL}/reset-password?error=invalidToken`
-      );
-    }
-
-    return res.redirect(
-      `${process.env.FRONTEND_BASE_URL}/reset-password?token=${encodeURIComponent(
-        token
-      )}`
-    );
-  } catch (err) {
-    console.error("RESET PASSWORD REDIRECT error:", err);
-    return res.redirect(
-      `${process.env.FRONTEND_BASE_URL}/reset-password?error=server`
-    );
-  }
-});
-
-// POST /auth/reset-password
-router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
-  try {
-    const { token, newPassword } = req.body;
-
-    if (!token || !newPassword) {
-      return res.status(400).json({ message: "token и newPassword обязательны" });
-    }
-
-    const pwdError = validatePassword(newPassword);
-    if (pwdError) {
-      return res.status(400).json({ message: pwdError });
-    }
-
-    const tokenHash = hashToken(String(token));
-
-    const record = await prisma.passwordResetToken.findFirst({
-      where: { tokenHash },
-      select: { userId: true, expiresAt: true },
-    });
-
-    if (!record) {
-      return res.status(400).json({ message: "Неверный токен" });
-    }
-
-    if (record.expiresAt < new Date()) {
-      await prisma.passwordResetToken
-        .delete({ where: { userId: record.userId } })
-        .catch(() => {});
-      return res.status(400).json({ message: "Токен истёк" });
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-
-    const updatedUser = await prisma.$transaction(async (tx) => {
-      const u = await tx.user.update({
-        where: { id: record.userId },
-        data: { passwordHash },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          phone: true,
-          role: true,
-          isEmailVerified: true,
-          telegramUsername: true,
-          district: true,
-          avatarUrl: true,
-          createdAt: true,
-        },
-      });
-
-      await tx.passwordResetToken.delete({
-        where: { userId: record.userId },
-      });
-
-      return u;
-    });
-
-    const payload = { userId: updatedUser.id };
-    const jwtToken = jwt.sign(payload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
-    });
-
-    return res.json({
-      message: "Пароль успешно изменён",
-      user: updatedUser,
-      token: jwtToken,
-    });
-  } catch (err) {
-    console.error("RESET PASSWORD error:", err);
-    return res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
-
-const multer = require("multer");
-const fs = require("fs");
-const path = require("path");
-
-const AVATAR_DIR = path.join(__dirname, "..", "..", "uploads", "avatars");
-fs.mkdirSync(AVATAR_DIR, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, AVATAR_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname || "").toLowerCase();
-    const safeExt = [".jpg", ".jpeg", ".png", ".webp"].includes(ext) ? ext : ".jpg";
-    cb(null, `u${req.user.id}_${Date.now()}${safeExt}`);
-  },
-});
-
-function fileFilter(req, file, cb) {
-  const ok = ["image/jpeg", "image/png", "image/webp"].includes(file.mimetype);
-  cb(ok ? null : new Error("Неверный формат файла"), ok);
-}
-
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 2 * 1024 * 1024 },
-});
-
-// POST /auth/avatar
-router.post(
-  "/avatar",
-  auth,
-  (req, res, next) => {
+  return (req, res, next) => {
     upload.single("avatar")(req, res, (err) => {
       if (err) {
-        return res.status(400).json({
-          message: err.message || "Ошибка загрузки файла",
-        });
+        const httpErr = new Error(err.message || "Ошибка загрузки файла");
+        httpErr.status = 400;
+        return next(httpErr);
       }
       next();
     });
-  },
-  async (req, res) => {
-    try {
-      if (!req.file) return res.status(400).json({ message: "Файл не выбран" });
-
-      const current = await prisma.user.findUnique({
-        where: { id: req.user.id },
-        select: { avatarUrl: true },
-      });
-
-      const newUrl = `/uploads/avatars/${req.file.filename}`;
-
-      await prisma.user.update({
-        where: { id: req.user.id },
-        data: { avatarUrl: newUrl },
-      });
-
-      if (current?.avatarUrl && current.avatarUrl.startsWith("/uploads/avatars/")) {
-        const oldPath = path.join(__dirname, "..", "..", current.avatarUrl);
-        fs.unlink(oldPath, () => {});
-      }
-
-      return res.json({ message: "Аватар обновлён", avatarUrl: newUrl });
-    } catch (err) {
-      console.error("POST /avatar error:", err);
-      return res.status(500).json({ message: "Ошибка сервера" });
-    }
-  }
-);
-
-// DELETE /auth/test/delete-user-by-email
-router.delete("/test/delete-user-by-email", async (req, res) => {
-  try {
-    let { email } = req.body;
-
-    if (!email)
-      return res.status(400).json({ message: "email обязателен" });
-
-    email = normalizeEmail(email);
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, email: true },
-    });
-
-    if (!user)
-      return res.status(404).json({ message: "Пользователь не найден" });
-
-    await prisma.$transaction([
-      prisma.requestVolunteer.deleteMany({ where: { volunteerId: user.id } }),
-      prisma.request.deleteMany({ where: { createdById: user.id } }),
-      prisma.incident.deleteMany({ where: { createdById: user.id } }),
-      prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } }),
-      prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
-      prisma.user.delete({ where: { id: user.id } }),
-    ]);
-
-    return res.json({
-      message: "Пользователь и все связанные данные удалены",
-      email: user.email,
-      userId: user.id,
-    });
-  } catch (err) {
-    console.error("TEST delete-user-by-email error:", err);
-    return res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
+  };
+}
 
 module.exports = router;
