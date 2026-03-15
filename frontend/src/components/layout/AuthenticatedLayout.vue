@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-layout">
     <header class="mobile-header" aria-hidden="true">
-      <router-link to="/dashboard" class="mobile-logo">
+      <router-link to="/" class="mobile-logo">
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
           <path
             d="M16 2L4 9V16C4 23.732 9.268 28 16 30C22.732 28 28 23.732 28 16V9L16 2Z"
@@ -29,7 +29,7 @@
     <div v-if="sidebarOpen" class="sidebar-backdrop" aria-hidden="true" @click="sidebarOpen = false" />
     <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
       <div class="sidebar-header">
-        <router-link to="/dashboard" class="logo" @click="sidebarOpen = false">
+        <router-link to="/" class="logo" @click="sidebarOpen = false">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
             <path
               d="M16 2L4 9V16C4 23.732 9.268 28 16 30C22.732 28 28 23.732 28 16V9L16 2Z"
@@ -168,13 +168,25 @@
           </svg>
           Профиль
         </router-link>
+        <router-link
+          v-if="authStore.isAdmin"
+          to="/admin"
+          class="nav-item"
+          :class="{ active: $route.path.startsWith('/admin') }"
+          @click="sidebarOpen = false"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 4h14M3 10h14M3 16h14" />
+          </svg>
+          Админка
+        </router-link>
       </nav>
       <div class="sidebar-footer">
         <a href="#" class="nav-item" @click.prevent="logout">Выйти</a>
       </div>
     </aside>
 
-    <main class="main-content">
+    <main class="main-content" :class="{ 'main-content--full-bleed': $route.path === '/map' }">
       <router-view />
     </main>
   </div>

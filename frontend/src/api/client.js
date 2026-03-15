@@ -9,7 +9,6 @@ export function getStoredToken() {
 
 /**
  * Запрос с автоматическим добавлением Bearer токена.
- * В конец URL добавляется слеш (требование бэкенда).
  * @param {string} url - полный URL или путь относительно API_BASE_URL
  * @param {RequestInit} options - опции fetch
  * @param {boolean} useFullUrl - если true, url считается полным
@@ -26,14 +25,33 @@ function clearSessionAndRedirectToLogin() {
 
 export async function fetchWithAuth(url, options = {}, useFullUrl = false) {
   const token = getStoredToken()
-  const path = useFullUrl ? url : `${API_BASE_URL}${url}`
-  const fullUrl = path.endsWith('/') ? path : `${path}/`
+  const fullUrl = useFullUrl ? url : `${API_BASE_URL}${url}`
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
   const response = await fetch(fullUrl, { ...options, headers })
+  if (response.status === 401) {
+    clearSessionAndRedirectToLogin()
+    const error = new Error('Необходима повторная авторизация')
+    error.status = 401
+    throw error
+  }
+  return response
+}
+
+/**
+ * POST с FormData (multipart). Не устанавливает Content-Type — браузер выставит boundary.
+ * @param {string} url - путь относительно API_BASE_URL
+ * @param {FormData} formData
+ * @returns {Promise<Response>}
+ */
+export async function fetchWithAuthFormData(url, formData) {
+  const token = getStoredToken()
+  const fullUrl = `${API_BASE_URL}${url}`
+  const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+  const response = await fetch(fullUrl, { method: 'POST', headers, body: formData })
   if (response.status === 401) {
     clearSessionAndRedirectToLogin()
     const error = new Error('Необходима повторная авторизация')

@@ -229,7 +229,7 @@ router.get("/my", auth, async (req, res) => {
 });
 
 // GET /requests/map
-router.get("/map", auth, allowRoles("COORDINATOR", "ADMIN"), async (req, res) => {
+router.get("/map", auth, async (req, res) => {
   try {
     const { priority, problemType, district } = req.query;
 

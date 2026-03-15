@@ -17,6 +17,15 @@ export async function getIncident(id) {
   return parseJsonResponse(res)
 }
 
+/** Активные инциденты (ACTIVE, RESOLVING). GET /incidents/active?district= — без auth. */
+export async function getActiveIncidents(params = {}) {
+  const q = new URLSearchParams()
+  if (params.district != null && params.district !== '') q.set('district', params.district)
+  const query = q.toString()
+  const res = await fetchWithAuth(`${INCIDENTS}/active${query ? '?' + query : ''}`)
+  return parseJsonResponse(res)
+}
+
 export async function createIncident(data) {
   const res = await fetchWithAuth(INCIDENTS, {
     method: 'POST',
@@ -43,5 +52,11 @@ export async function patchIncidentStatus(id, status) {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   })
+  return parseJsonResponse(res)
+}
+
+/** Удалить инцидент (только админ). DELETE /incidents/:id */
+export async function deleteIncident(id) {
+  const res = await fetchWithAuth(`${INCIDENTS}/${id}`, { method: 'DELETE' })
   return parseJsonResponse(res)
 }

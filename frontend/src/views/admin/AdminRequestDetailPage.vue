@@ -1,27 +1,21 @@
 <template>
   <div>
-    <div style="margin-bottom: var(--spacing-lg);">
-      <router-link to="/requests" class="btn btn-secondary">← К списку</router-link>
-    </div>
+    <div class="back-row"><router-link to="/admin/requests" class="btn btn-secondary">← К списку</router-link></div>
     <div v-if="loading" class="card">Загрузка…</div>
     <template v-else-if="request">
       <div class="card">
         <h1 class="page-title">Заявка #{{ request.id }}</h1>
-        <dl style="display: grid; gap: var(--spacing-sm);">
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Заголовок</dt><dd>{{ request.title }}</dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Описание</dt><dd>{{ request.description || '—' }}</dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Статус</dt><dd><span class="badge">{{ request.status }}</span></dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Приоритет</dt><dd>{{ request.priority }}</dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Тип</dt><dd>{{ request.problemType }}</dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Район</dt><dd>{{ request.district }}</dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Адрес</dt><dd>{{ request.address || '—' }}</dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Опубликовано</dt><dd>{{ request.isPublished ? 'Да' : 'Нет' }}</dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Создатель</dt><dd>{{ request.createdBy ? [request.createdBy.firstName, request.createdBy.lastName].filter(Boolean).join(' ') : '—' }}</dd></div>
+        <dl class="detail-list">
+          <div><dt>Заголовок</dt><dd>{{ request.title }}</dd></div>
+          <div><dt>Описание</dt><dd>{{ request.description || '—' }}</dd></div>
+          <div><dt>Статус</dt><dd><span class="badge">{{ request.status }}</span></dd></div>
+          <div><dt>Приоритет</dt><dd>{{ request.priority }}</dd></div>
+          <div><dt>Опубликовано</dt><dd>{{ request.isPublished ? 'Да' : 'Нет' }}</dd></div>
         </dl>
       </div>
       <div class="card">
-        <h2 style="font-size: var(--font-size-lg); margin-bottom: var(--spacing-md);">Действия</h2>
-        <div style="display: flex; gap: var(--spacing-md); flex-wrap: wrap; align-items: center;">
+        <h2 class="section-title">Действия</h2>
+        <div class="inline-row">
           <select v-model="statusSelect" class="form-control" style="max-width: 160px;">
             <option value="NEW">NEW</option>
             <option value="IN_PROGRESS">IN_PROGRESS</option>
@@ -34,7 +28,7 @@
             <button v-else type="button" class="btn btn-secondary" :disabled="actionLoading" @click="unpublish">Снять с публикации</button>
           </template>
           <button type="button" class="btn btn-danger" :disabled="actionLoading" @click="doDelete">Удалить заявку</button>
-          <span v-if="actionMessage" :class="actionError ? 'form-error' : ''" style="margin-left: 8px;">{{ actionMessage }}</span>
+          <span v-if="actionMessage" class="msg" :class="{ error: actionError }">{{ actionMessage }}</span>
         </div>
       </div>
     </template>
@@ -45,7 +39,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getRequest, setRequestStatus, publishRequest, unpublishRequest, deleteRequest } from '../api/requests.js'
+import { getRequest, patchRequestStatus, publishRequest, unpublishRequest, deleteRequest } from '../../api/requests.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -78,7 +72,7 @@ async function setStatus() {
   actionError.value = false
   actionLoading.value = true
   try {
-    const data = await setRequestStatus(request.value.id, statusSelect.value)
+    const data = await patchRequestStatus(request.value.id, statusSelect.value)
     if (data.request) request.value = data.request
     actionMessage.value = data.message || 'Статус изменён'
   } catch (e) {
@@ -91,7 +85,6 @@ async function setStatus() {
 
 async function publish() {
   actionMessage.value = ''
-  actionError.value = false
   actionLoading.value = true
   try {
     const data = await publishRequest(request.value.id)
@@ -107,7 +100,6 @@ async function publish() {
 
 async function unpublish() {
   actionMessage.value = ''
-  actionError.value = false
   actionLoading.value = true
   try {
     const data = await unpublishRequest(request.value.id)
@@ -122,17 +114,27 @@ async function unpublish() {
 }
 
 async function doDelete() {
-  if (!confirm('Удалить заявку? Это действие необратимо.')) return
-  actionMessage.value = ''
+  if (!confirm('Удалить заявку?')) return
   actionLoading.value = true
   try {
     await deleteRequest(request.value.id)
-    router.push('/requests')
+    router.push('/admin/requests')
   } catch (e) {
-    actionMessage.value = e.message || 'Ошибка удаления'
+    actionMessage.value = e.message || 'Ошибка'
     actionError.value = true
   } finally {
     actionLoading.value = false
   }
 }
 </script>
+
+<style scoped>
+.back-row { margin-bottom: var(--spacing-lg); }
+.detail-list { display: grid; gap: var(--spacing-sm); }
+.detail-list dt { font-size: var(--font-size-sm); color: var(--gray-500); }
+.section-title { font-size: var(--font-size-lg); margin-bottom: var(--spacing-md); }
+.inline-row { display: flex; gap: var(--spacing-md); align-items: center; flex-wrap: wrap; }
+.msg { margin-left: var(--spacing-md); }
+.msg.error { color: var(--danger); }
+.badge { padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+</style>

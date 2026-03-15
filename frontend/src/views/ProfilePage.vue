@@ -3,29 +3,52 @@
     <div class="profile-header">
       <div class="profile-cover"></div>
       <div class="profile-info-section">
-        <div class="profile-avatar-wrapper">
-          <img
-            v-if="authStore.userAvatar"
-            :src="authStore.userAvatar"
-            alt=""
-            class="profile-avatar"
-            width="120"
-            height="120"
-          />
-          <button type="button" class="avatar-upload-btn" title="Сменить фото">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 20 20"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M16 2L20 6L16 10" />
-              <path d="M4 18v-4M4 14L2 16l-2-2" />
-              <circle cx="10" cy="10" r="8" />
-            </svg>
-          </button>
+        <div class="profile-avatar-block">
+          <div
+            class="profile-avatar-wrapper profile-avatar-clickable"
+            :class="{ 'avatar-uploading': avatarUploading }"
+            role="button"
+            tabindex="0"
+            title="Сменить фото"
+            @click="triggerAvatarInput"
+            @keydown.enter="triggerAvatarInput"
+            @keydown.space.prevent="triggerAvatarInput"
+          >
+            <template v-if="avatarUploading">
+              <div class="profile-avatar-placeholder profile-avatar-placeholder-loading">
+                <span class="avatar-placeholder-text">...</span>
+              </div>
+            </template>
+            <template v-else-if="avatarSrc && !avatarLoadError">
+              <img
+                :src="avatarSrc"
+                alt=""
+                class="profile-avatar"
+                width="120"
+                height="120"
+                @error="avatarLoadError = true"
+              />
+            </template>
+            <template v-else>
+              <div class="profile-avatar-placeholder">
+                <svg class="avatar-placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="8" r="4"/>
+                  <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+                </svg>
+                <span class="avatar-placeholder-text">Фото</span>
+              </div>
+            </template>
+            <input
+              ref="avatarInputRef"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="avatar-input-hidden"
+              aria-label="Выберите фото (JPG, PNG или WebP)"
+              @change="onAvatarFileChange"
+            />
+          </div>
+          <p v-if="avatarError" class="avatar-error">{{ avatarError }}</p>
+          <p class="avatar-hint">JPG, PNG или WebP, до 2 МБ</p>
         </div>
         <div class="profile-header-info">
           <h1>{{ authStore.userName }}</h1>
@@ -47,7 +70,7 @@
             </span>
           </div>
           <div class="profile-actions">
-            <button type="button" class="btn btn-primary btn-sm">Редактировать профиль</button>
+            <button type="button" class="btn btn-primary btn-sm" @click="openEditProfileModal">Редактировать профиль</button>
           </div>
         </div>
       </div>
@@ -59,22 +82,68 @@
           <div class="card-header">
             <h2 class="card-title">Личные данные</h2>
           </div>
-          <div class="info-list" style="padding: var(--spacing-xl)">
-            <div class="info-item">
-              <span class="info-label">Имя</span>
-              <span class="info-value">{{ authStore.user?.firstName ?? '—' }}</span>
+          <form class="profile-form" @submit.prevent="saveProfile">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="profile-firstName">Имя</label>
+                <input
+                  id="profile-firstName"
+                  v-model="profileForm.firstName"
+                  type="text"
+                  class="form-control"
+                  minlength="2"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="profile-lastName">Фамилия</label>
+                <input
+                  id="profile-lastName"
+                  v-model="profileForm.lastName"
+                  type="text"
+                  class="form-control"
+                  minlength="2"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="profile-phone">Телефон</label>
+                <input
+                  id="profile-phone"
+                  v-model="profileForm.phone"
+                  type="tel"
+                  class="form-control"
+                  placeholder="+7..."
+                />
+              </div>
+              <div class="form-group">
+                <label for="profile-district">Район</label>
+                <select id="profile-district" v-model="profileForm.district" class="form-control">
+                  <option value="">— не указан —</option>
+                  <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] ?? d }}</option>
+                </select>
+              </div>
+              <div class="form-group form-group-full">
+                <label for="profile-telegram">Telegram</label>
+                <input
+                  id="profile-telegram"
+                  v-model="profileForm.telegramUsername"
+                  type="text"
+                  class="form-control"
+                  placeholder="@username или username"
+                />
+                <span v-if="profileError" class="form-error">{{ profileError }}</span>
+                <span v-if="profileSuccess" class="form-success">{{ profileSuccess }}</span>
+              </div>
             </div>
-            <div class="info-item">
-              <span class="info-label">Фамилия</span>
-              <span class="info-value">{{ authStore.user?.lastName ?? '—' }}</span>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" :disabled="profileSaving">Сохранить</button>
             </div>
+          </form>
+          <div class="info-list profile-readonly-meta" style="padding: 0 var(--spacing-xl) var(--spacing-xl)">
             <div class="info-item">
               <span class="info-label">Email</span>
               <span class="info-value">{{ authStore.user?.email ?? '—' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Телефон</span>
-              <span class="info-value">{{ authStore.user?.phone ?? '—' }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">Роль</span>
@@ -159,6 +228,39 @@
             </div>
           </div>
         </div>
+        <div class="card card-danger-zone">
+          <div class="card-header">
+            <h2 class="card-title">Удалить аккаунт</h2>
+          </div>
+          <div class="danger-zone-content">
+            <p>Удаление аккаунта необратимо. Будут удалены ваши заявки и привязки.</p>
+            <div v-if="deleteAccountError" class="auth-message auth-message-error">{{ deleteAccountError }}</div>
+            <form class="delete-account-form" @submit.prevent="submitDeleteAccount">
+              <div class="form-group">
+                <label for="delete-password">Введите пароль для подтверждения</label>
+                <input
+                  id="delete-password"
+                  v-model="deletePassword"
+                  type="password"
+                  class="form-control"
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                />
+              </div>
+              <label class="checkbox-label">
+                <input v-model="deleteConfirm" type="checkbox" />
+                <span>Я понимаю, что аккаунт и данные будут удалены безвозвратно</span>
+              </label>
+              <button
+                type="submit"
+                class="btn btn-danger"
+                :disabled="!deleteConfirm || !deletePassword.trim() || deleteAccountSaving"
+              >
+                {{ deleteAccountSaving ? 'Удаление...' : 'Удалить аккаунт' }}
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
       <div class="profile-right-column">
         <div class="card">
@@ -196,16 +298,187 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit profile modal (email) -->
+    <div v-if="editProfileModalOpen" class="modal-overlay" @click.self="editProfileModalOpen = false">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Редактировать профиль</h2>
+          <button type="button" class="modal-close" aria-label="Закрыть" @click="editProfileModalOpen = false">&times;</button>
+        </div>
+        <form class="modal-body" @submit.prevent="saveEditProfile">
+          <p class="modal-hint">Контактные данные (имя, телефон, район, Telegram) можно изменить в блоке «Личные данные» ниже.</p>
+          <div class="form-group">
+            <label for="edit-profile-email">Email</label>
+            <input
+              id="edit-profile-email"
+              v-model="editProfileEmail"
+              type="email"
+              class="form-control"
+              required
+              placeholder="email@example.com"
+            />
+            <span v-if="editProfileError" class="form-error">{{ editProfileError }}</span>
+            <span v-if="editProfileSuccess" class="form-success">{{ editProfileSuccess }}</span>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" @click="editProfileModalOpen = false">Отмена</button>
+            <button type="submit" class="btn btn-primary" :disabled="editProfileSaving">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import { getMyRequests } from '../api/requests.js'
-import { PROBLEM_TYPE_LABELS, PRIORITY_LABELS } from '../constants/requests.js'
+import { updateProfile, uploadAvatar, deleteAccount } from '../api/auth.js'
+import { PROBLEM_TYPE_LABELS, PRIORITY_LABELS, ALLOWED_DISTRICTS, DISTRICT_LABELS } from '../constants/requests.js'
 
+const router = useRouter()
 const authStore = useAuthStore()
+const avatarInputRef = ref(null)
+const avatarUploading = ref(false)
+const avatarLoadError = ref(false)
+const avatarSrc = computed(() => authStore.userAvatar)
+watch(avatarSrc, () => { avatarLoadError.value = false })
+
+function triggerAvatarInput() {
+  if (avatarInputRef.value) avatarInputRef.value.click()
+}
+
+const avatarError = ref('')
+
+async function onAvatarFileChange(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  avatarError.value = ''
+  const allowed = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowed.includes(file.type)) {
+    avatarError.value = 'Допустимы только JPG, PNG или WebP'
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    avatarError.value = 'Размер файла не более 2 МБ'
+    return
+  }
+  e.target.value = ''
+  avatarUploading.value = true
+  try {
+    const { avatarUrl } = await uploadAvatar(file)
+    authStore.setAuth(authStore.token, { ...authStore.user, avatarUrl })
+    avatarLoadError.value = false
+  } catch (err) {
+    avatarError.value = err.message || 'Не удалось загрузить фото'
+  } finally {
+    avatarUploading.value = false
+  }
+}
+
+const profileForm = reactive({
+  firstName: '',
+  lastName: '',
+  phone: '',
+  district: '',
+  telegramUsername: '',
+})
+const profileSaving = ref(false)
+const profileError = ref('')
+const profileSuccess = ref('')
+
+const editProfileModalOpen = ref(false)
+const editProfileEmail = ref('')
+const editProfileSaving = ref(false)
+const editProfileError = ref('')
+const editProfileSuccess = ref('')
+
+function openEditProfileModal() {
+  editProfileEmail.value = authStore.user?.email ?? ''
+  editProfileError.value = ''
+  editProfileSuccess.value = ''
+  editProfileModalOpen.value = true
+}
+
+async function saveEditProfile() {
+  const email = editProfileEmail.value?.trim()
+  if (!email) {
+    editProfileError.value = 'Введите email'
+    return
+  }
+  editProfileError.value = ''
+  editProfileSuccess.value = ''
+  editProfileSaving.value = true
+  try {
+    const { user: updated } = await updateProfile({ email })
+    authStore.setAuth(authStore.token, updated)
+    editProfileSuccess.value = 'Email сохранён. Подтвердите новый email по ссылке из письма.'
+    setTimeout(() => {
+      editProfileModalOpen.value = false
+      editProfileSuccess.value = ''
+    }, 2500)
+  } catch (e) {
+    editProfileError.value = e.message || 'Не удалось сохранить email'
+  } finally {
+    editProfileSaving.value = false
+  }
+}
+
+const deletePassword = ref('')
+const deleteConfirm = ref(false)
+const deleteAccountSaving = ref(false)
+const deleteAccountError = ref('')
+
+async function submitDeleteAccount() {
+  if (!deleteConfirm.value || !deletePassword.value.trim()) return
+  deleteAccountError.value = ''
+  deleteAccountSaving.value = true
+  try {
+    await deleteAccount(deletePassword.value)
+    authStore.logout()
+    router.push('/')
+  } catch (err) {
+    deleteAccountError.value = err.message || 'Не удалось удалить аккаунт'
+  } finally {
+    deleteAccountSaving.value = false
+  }
+}
+
+function syncProfileForm() {
+  const u = authStore.user
+  profileForm.firstName = u?.firstName ?? ''
+  profileForm.lastName = u?.lastName ?? ''
+  profileForm.phone = u?.phone ?? ''
+  profileForm.district = u?.district ?? ''
+  profileForm.telegramUsername = u?.telegramUsername ?? ''
+}
+
+async function saveProfile() {
+  profileError.value = ''
+  profileSuccess.value = ''
+  profileSaving.value = true
+  try {
+    const { user: updated } = await updateProfile({
+      firstName: profileForm.firstName.trim(),
+      lastName: profileForm.lastName.trim(),
+      phone: profileForm.phone.trim() || undefined,
+      district: profileForm.district || undefined,
+      telegramUsername: profileForm.telegramUsername.trim() || undefined,
+    })
+    authStore.setAuth(authStore.token, updated)
+    profileSuccess.value = 'Профиль сохранён'
+    setTimeout(() => { profileSuccess.value = '' }, 3000)
+  } catch (e) {
+    profileError.value = e.message || 'Не удалось сохранить профиль'
+  } finally {
+    profileSaving.value = false
+  }
+}
+
+watch(() => authStore.user, syncProfileForm, { deep: true })
 
 const myRequests = ref([])
 const myRequestsLoading = ref(true)
@@ -221,6 +494,7 @@ const statusLabels = {
 }
 
 onMounted(async () => {
+  syncProfileForm()
   try {
     myRequests.value = await getMyRequests()
   } catch (e) {
@@ -257,3 +531,127 @@ const achievements = ref([
   { id: 3, title: 'Герой недели', description: 'Топ-3 волонтёра за неделю', unlocked: false },
 ])
 </script>
+
+<style scoped>
+.avatar-input-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.profile-avatar-clickable {
+  cursor: pointer;
+}
+.profile-avatar-clickable:hover {
+  opacity: 0.95;
+}
+.profile-avatar-clickable.avatar-uploading {
+  pointer-events: none;
+  opacity: 0.8;
+}
+.profile-avatar-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+.profile-avatar-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid var(--gray-200);
+  background: var(--gray-100);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+.avatar-placeholder-icon {
+  color: var(--gray-400);
+}
+.avatar-placeholder-text {
+  font-size: var(--font-size-sm);
+  color: var(--gray-500);
+}
+.profile-avatar-placeholder-loading .avatar-placeholder-text {
+  animation: avatar-pulse 0.8s ease-in-out infinite;
+}
+@keyframes avatar-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.avatar-error { color: var(--red-600, #dc2626); font-size: var(--font-size-sm); margin: 0.25rem 0 0; }
+.avatar-hint { font-size: var(--font-size-xs); color: var(--gray-500); margin: 0.25rem 0 0; }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--gray-300);
+  color: var(--gray-700);
+}
+.btn-outline:hover:not(:disabled) {
+  background: var(--gray-50);
+  border-color: var(--gray-400);
+}
+.card-danger-zone .card-title {
+  color: var(--red-600, #dc2626);
+}
+.danger-zone-content {
+  padding: var(--spacing-xl);
+}
+.delete-account-form .form-group {
+  margin-bottom: 1rem;
+}
+.btn-danger {
+  background: var(--red-600, #dc2626);
+  color: white;
+  border: none;
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--red-700, #b91c1c);
+}
+
+/* Edit profile modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-lg);
+}
+.modal-card {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 420px;
+  width: 100%;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--gray-200);
+}
+.modal-title { margin: 0; font-size: 1.25rem; }
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--gray-500);
+  line-height: 1;
+}
+.modal-close:hover { color: var(--gray-700); }
+.modal-body { padding: var(--spacing-xl); }
+.modal-hint {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  margin-bottom: var(--spacing-lg);
+}
+.modal-body .form-group { margin-bottom: 1rem; }
+.modal-body .form-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+</style>

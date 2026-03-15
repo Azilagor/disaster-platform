@@ -55,6 +55,7 @@
           <p v-if="r.peopleCount" class="request-meta">Людей: {{ r.peopleCount }}</p>
           <div class="request-card-actions">
             <button
+              v-if="!isRequestAssignedToMe(r.id)"
               type="button"
               class="btn btn-primary btn-sm"
               :disabled="respondingId === r.id"
@@ -62,6 +63,7 @@
             >
               {{ respondingId === r.id ? '...' : 'Откликнуться' }}
             </button>
+            <span v-else class="already-responded-badge">Вы уже откликнулись</span>
           </div>
         </div>
       </div>
@@ -89,9 +91,10 @@
           <p class="request-district">{{ DISTRICT_LABELS[r.district] || r.district }}</p>
           <div class="request-card-actions">
             <button
+              v-if="r.status !== 'DONE' && r.status !== 'CANCELLED'"
               type="button"
               class="btn btn-secondary btn-sm"
-              :disabled="leavingId === r.id || r.status === 'DONE' || r.status === 'CANCELLED'"
+              :disabled="leavingId === r.id"
               @click="leaveRequest(r.id)"
             >
               {{ leavingId === r.id ? '...' : 'Отказаться от заявки' }}
@@ -106,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { getAvailableRequests, getRequestsAssigned, volunteerRespond, volunteerLeave } from '../api/requests.js'
 import { withLoading } from '../stores/loading.js'
 import {
@@ -173,8 +176,14 @@ watch(
   { immediate: true }
 )
 watch(tab, (t) => {
-  if (t === 'available') loadAvailable()
-  else loadAssigned()
+  if (t === 'available') {
+    loadAvailable()
+    loadAssigned() // needed to know which available requests we already responded to
+  } else loadAssigned()
+})
+
+onMounted(() => {
+  if (tab.value === 'available') loadAssigned()
 })
 
 async function respondToRequest(id) {
@@ -202,6 +211,11 @@ async function leaveRequest(id) {
     leavingId.value = null
   }
 }
+
+/** True if the current user is already assigned to this request (already responded). */
+function isRequestAssignedToMe(requestId) {
+  return assignedRequests.value.some((r) => r.id === requestId)
+}
 </script>
 
 <style scoped>
@@ -222,4 +236,5 @@ async function leaveRequest(id) {
 .request-card-actions { margin-top: 0.75rem; }
 .problem-type { font-size: 0.85rem; color: #666; }
 .text-muted { color: #666; margin: 0; }
+.already-responded-badge { font-size: 0.875rem; color: var(--gray-600); font-style: italic; }
 </style>

@@ -1,9 +1,54 @@
 <template>
   <div class="map-page">
-    <aside class="filters-panel">
-      <div class="filters-header">
-        <h2>Фильтры</h2>
+    <div class="map-container">
+      <div class="map-header">
+        <button
+          type="button"
+          class="panel-toggle"
+          :aria-label="panelOpen ? 'Скрыть фильтры' : 'Показать фильтры'"
+          @click="panelOpen = !panelOpen"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path v-if="panelOpen" d="M15 18l-6-6 6-6" />
+            <path v-else d="M9 18l6-6-6-6" />
+          </svg>
+          <span class="panel-toggle-label">{{ panelOpen ? 'Скрыть фильтры' : 'Фильтры' }}</span>
+        </button>
+        <div class="search-box">
+          <input v-model="searchQuery" type="text" placeholder="Поиск по адресу или описанию..." class="form-control" />
+        </div>
+        <router-link v-if="canCreateRequest" to="/create-request" class="btn btn-primary">Создать запрос</router-link>
       </div>
+      <div class="map-area">
+        <div ref="mapRef" class="map-wrapper"></div>
+        <div class="map-legend">
+          <h4>Приоритет</h4>
+          <div class="legend-items">
+            <div class="legend-item">
+              <span class="legend-marker critical-marker"></span><span>Критический</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-marker high-marker"></span><span>Высокий</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-marker medium-marker"></span><span>Средний</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-marker low-marker"></span><span>Низкий</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="filters-drawer" :class="{ 'filters-drawer--open': panelOpen }" aria-hidden="!panelOpen">
+      <div class="filters-drawer-inner">
+        <div class="filters-header">
+          <h2>Фильтры</h2>
+          <button type="button" class="filters-close" aria-label="Закрыть" @click="panelOpen = false">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
       <div class="filter-group">
         <span class="filter-label">Район</span>
         <select v-model="filters.district" class="form-control">
@@ -44,45 +89,8 @@
           <span class="request-list-address">{{ r.address }}</span>
         </div>
       </div>
+      </div>
     </aside>
-
-    <div class="map-container">
-      <div class="map-header">
-        <div class="search-box">
-          <input v-model="searchQuery" type="text" placeholder="Поиск по адресу или описанию..." class="form-control" />
-        </div>
-        <router-link v-if="canCreateRequest" to="/create-request" class="btn btn-primary">Создать запрос</router-link>
-      </div>
-      <div class="map-placeholder">
-        <div class="map-overlay">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
-          <p>Карта запросов</p>
-          <p class="map-note">
-            Маркеры загружены из API ({{ requests.length }}). Список заявок — в панели слева. Подключите карту (Leaflet, Yandex.Maps) для отображения точек по координатам.
-          </p>
-        </div>
-      </div>
-      <div class="map-legend">
-        <h4>Приоритет</h4>
-        <div class="legend-items">
-          <div class="legend-item">
-            <span class="legend-marker critical-marker"></span><span>Критический</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-marker high-marker"></span><span>Высокий</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-marker medium-marker"></span><span>Средний</span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-marker low-marker"></span><span>Низкий</span>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Modal: request detail -->
     <div v-if="selectedRequest" class="modal" @click.self="selectedRequest = null">
@@ -135,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import { getRequestsMap, volunteerRespond } from '../api/requests.js'
@@ -148,18 +156,28 @@ import {
   PRIORITY_LABELS,
   PROBLEM_TYPE_LABELS,
 } from '../constants/requests.js'
+import 'leaflet/dist/leaflet.css'
 
 const route = useRoute()
 const authStore = useAuthStore()
 const role = computed(() => (authStore.user?.role || '').toUpperCase())
 const isVolunteer = computed(() => role.value === 'VOLUNTEER')
 const canCreateRequest = computed(() => role.value === 'USER' || role.value === 'COORDINATOR' || role.value === 'ADMIN')
+/** Full map interactivity: open detail modal and (for volunteer) respond. USER only sees points with title. */
+const canOpenFullDetail = computed(
+  () => role.value === 'VOLUNTEER' || role.value === 'COORDINATOR' || role.value === 'ADMIN'
+)
 
+const panelOpen = ref(false)
 const searchQuery = ref('')
 const requests = ref([])
 const loading = ref(false)
 const selectedRequest = ref(null)
 const respondingId = ref(null)
+const mapRef = ref(null)
+
+let map = null
+let markersLayer = null
 
 const filters = reactive({ district: '', priority: '', problemType: '' })
 
@@ -195,13 +213,103 @@ const filteredBySearch = computed(() => {
   )
 })
 
-onMounted(() => {
+const PRIORITY_COLORS = {
+  CRITICAL: '#dc2626',
+  HIGH: '#ea580c',
+  MEDIUM: '#d97706',
+  LOW: '#059669',
+}
+
+function escapeHtml(text) {
+  if (text == null || text === '') return ''
+  const s = String(text)
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/** SVG маркер-булавка (как в примере), цвет по приоритету */
+function makePinIcon(color) {
+  return `
+    <svg width="32" height="36" viewBox="0 0 24 36" class="map-pin-svg">
+      <defs>
+        <filter id="pin-shadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.35"/>
+        </filter>
+      </defs>
+      <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="${color}" stroke="#fff" stroke-width="2" filter="url(#pin-shadow)"/>
+      <circle cx="12" cy="12" r="4" fill="#fff" fill-opacity="0.9"/>
+    </svg>
+  `
+}
+
+function updateMarkers() {
+  if (!map || !markersLayer) return
+  markersLayer.clearLayers()
+  const L = window.L
+  if (!L) return
+  const list = requests.value
+  const withCoords = list.filter((r) => r.latitude != null && r.longitude != null && !Number.isNaN(Number(r.latitude)) && !Number.isNaN(Number(r.longitude)))
+  const fullDetail = canOpenFullDetail.value
+  withCoords.forEach((r) => {
+    const lat = Number(r.latitude)
+    const lon = Number(r.longitude)
+    const color = PRIORITY_COLORS[r.priority] || PRIORITY_COLORS.MEDIUM
+    const icon = L.divIcon({
+      className: 'request-marker request-marker--pin',
+      html: makePinIcon(color),
+      iconSize: [32, 36],
+      iconAnchor: [16, 36],
+    })
+    const marker = L.marker([lat, lon], { icon })
+    marker.request = r
+    marker.bindTooltip(escapeHtml(r.title || 'Запрос'), {
+      direction: 'top',
+      permanent: false,
+      offset: [0, -36],
+      className: 'map-marker-tooltip',
+    })
+    if (fullDetail) {
+      marker.on('click', () => { selectedRequest.value = r })
+    } else {
+      const popupContent =
+        '<div class="map-marker-popup">' +
+        '<strong>' + escapeHtml(r.title || 'Запрос') + '</strong>' +
+        (r.address ? '<br><span class="map-marker-popup-address">' + escapeHtml(r.address) + '</span>' : '') +
+        '</div>'
+      marker.bindPopup(popupContent, { className: 'map-marker-popup-container', maxWidth: 280 })
+    }
+    markersLayer.addLayer(marker)
+  })
+}
+
+onMounted(async () => {
+  await nextTick()
+  if (mapRef.value) {
+    const L = (await import('leaflet')).default
+    window.L = L
+    map = L.map(mapRef.value).setView([43.238949, 76.945465], 12)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20,
+    }).addTo(map)
+    markersLayer = L.layerGroup().addTo(map)
+    updateMarkers()
+    setTimeout(() => { map?.invalidateSize() }, 100)
+  }
   const id = route.query.request
   if (id && requests.value.length) {
     const r = requests.value.find((req) => String(req.id) === String(id))
     if (r) selectedRequest.value = r
   }
 })
+
+watch(requests, () => updateMarkers(), { deep: true })
+watch(canOpenFullDetail, () => updateMarkers())
+
 watch(requests, (list) => {
   const id = route.query.request
   if (id && list.length && !selectedRequest.value) {
@@ -225,9 +333,71 @@ async function respondFromMap(id) {
 </script>
 
 <style scoped>
-.map-page { display: flex; min-height: 100%; }
-.filters-panel { width: 280px; flex-shrink: 0; padding: 1rem; border-right: 1px solid #eee; overflow-y: auto; }
-.filters-header { margin-bottom: 1rem; }
+.map-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+}
+.map-container { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+  flex-shrink: 0;
+}
+.panel-toggle:hover { background: #f9fafb; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+.panel-toggle .panel-toggle-label { white-space: nowrap; }
+.filters-drawer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 300px;
+  max-width: 90vw;
+  z-index: 500;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  pointer-events: none;
+}
+.filters-drawer--open {
+  transform: translateX(0);
+  pointer-events: auto;
+  box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+}
+.filters-drawer-inner {
+  height: 100%;
+  background: #fff;
+  padding: 1rem;
+  overflow-y: auto;
+  border-right: 1px solid #e5e7eb;
+}
+.filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.filters-header h2 { margin: 0; font-size: 1.1rem; }
+.filters-close {
+  padding: 0.35rem;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6b7280;
+}
+.filters-close:hover { background: #f3f4f6; color: #111; }
 .filter-group { margin-bottom: 1rem; }
 .filter-label { display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.25rem; }
 .filter-stats { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
@@ -242,18 +412,34 @@ async function respondFromMap(id) {
 .priority-dot.low { background: #059669; }
 .request-list-title { font-weight: 500; font-size: 0.95rem; }
 .request-list-address { display: block; font-size: 0.8rem; color: #666; }
-.map-container { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .map-header { display: flex; gap: 0.5rem; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; }
 .search-box { flex: 1; }
 .search-box input { width: 100%; }
-.map-placeholder { flex: 1; position: relative; background: #f5f5f5; }
-.map-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; padding: 2rem; text-align: center; }
-.map-note { font-size: 0.9rem; margin-top: 0.5rem; max-width: 360px; }
-.map-legend { padding: 1rem; border-top: 1px solid #eee; }
+.map-area { position: relative; flex: 1; min-height: 300px; }
+.map-wrapper { position: absolute; inset: 0; width: 100%; height: 100%; background: #e8e8e8; }
+.map-wrapper :deep(.request-marker) { background: none !important; border: none !important; }
+.map-wrapper :deep(.request-marker--pin .map-pin-svg) { display: block; pointer-events: none; }
+.map-wrapper :deep(.leaflet-popup-tip) { background: #fff; }
+.map-wrapper :deep(.map-marker-tooltip) { font-size: 0.85rem; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.map-wrapper :deep(.map-marker-popup-container .leaflet-popup-content-wrapper) { border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
+.map-wrapper :deep(.map-marker-popup) { margin: 0; font-size: 0.9rem; }
+.map-wrapper :deep(.map-marker-popup-address) { color: #666; font-size: 0.85rem; }
+.map-wrapper :deep(.map-marker-popup-detail) { color: #888; font-size: 0.8rem; margin-top: 0.25rem; display: block; }
+.map-legend {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 400;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  border: 1px solid #e5e7eb;
+}
 .map-legend h4 { margin: 0 0 0.5rem; font-size: 0.9rem; }
-.legend-items { display: flex; flex-wrap: wrap; gap: 1rem; }
-.legend-item { display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; }
-.legend-marker { width: 10px; height: 10px; border-radius: 50%; }
+.legend-items { display: flex; flex-direction: column; gap: 0.35rem; }
+.legend-item { display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; }
+.legend-marker { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .critical-marker { background: #dc2626; }
 .high-marker { background: #ea580c; }
 .medium-marker { background: #d97706; }
