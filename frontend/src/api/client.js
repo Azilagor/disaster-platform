@@ -9,7 +9,6 @@ export function getStoredToken() {
 
 /**
  * Запрос с автоматическим добавлением Bearer токена.
- * В конец URL добавляется слеш (требование бэкенда).
  * @param {string} url - полный URL или путь относительно API_BASE_URL
  * @param {RequestInit} options - опции fetch
  * @param {boolean} useFullUrl - если true, url считается полным
@@ -26,8 +25,7 @@ function clearSessionAndRedirectToLogin() {
 
 export async function fetchWithAuth(url, options = {}, useFullUrl = false) {
   const token = getStoredToken()
-  const path = useFullUrl ? url : `${API_BASE_URL}${url}`
-  const fullUrl = path.endsWith('/') ? path : `${path}/`
+  const fullUrl = useFullUrl ? url : `${API_BASE_URL}${url}`
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -51,8 +49,7 @@ export async function fetchWithAuth(url, options = {}, useFullUrl = false) {
  */
 export async function fetchWithAuthFormData(url, formData) {
   const token = getStoredToken()
-  const path = `${API_BASE_URL}${url}`
-  const fullUrl = path.endsWith('/') ? path : `${path}/`
+  const fullUrl = `${API_BASE_URL}${url}`
   const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
   const response = await fetch(fullUrl, { method: 'POST', headers, body: formData })
   if (response.status === 401) {

@@ -41,13 +41,14 @@ export async function login(email, password) {
 /**
  * Обновить профиль текущего пользователя.
  * Бэк: PUT /auth/me → 200 { message, user }
- * @param {Object} profileData - { firstName?, lastName?, phone?, district?, telegramUsername? }
+ * @param {Object} profileData - { firstName?, lastName?, email?, phone?, district?, telegramUsername? }
  * @returns {Promise<{ message, user }>}
  */
 export async function updateProfile(profileData) {
   const body = {}
   if (profileData.firstName !== undefined) body.firstName = profileData.firstName
   if (profileData.lastName !== undefined) body.lastName = profileData.lastName
+  if (profileData.email !== undefined) body.email = profileData.email
   if (profileData.phone !== undefined) body.phone = profileData.phone
   if (profileData.district !== undefined) body.district = profileData.district || null
   if (profileData.telegramUsername !== undefined) body.telegramUsername = profileData.telegramUsername || null
