@@ -3,44 +3,52 @@
     <div class="profile-header">
       <div class="profile-cover"></div>
       <div class="profile-info-section">
-        <div class="profile-avatar-wrapper">
-          <img
-            v-if="authStore.userAvatar"
-            :src="authStore.userAvatar"
-            alt=""
-            class="profile-avatar"
-            width="120"
-            height="120"
-          />
-          <input
-            ref="avatarInputRef"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            class="avatar-input-hidden"
-            @change="onAvatarFileChange"
-          />
-          <button
-            type="button"
-            class="avatar-upload-btn"
+        <div class="profile-avatar-block">
+          <div
+            class="profile-avatar-wrapper profile-avatar-clickable"
+            :class="{ 'avatar-uploading': avatarUploading }"
+            role="button"
+            tabindex="0"
             title="Сменить фото"
-            :disabled="avatarUploading"
             @click="triggerAvatarInput"
+            @keydown.enter="triggerAvatarInput"
+            @keydown.space.prevent="triggerAvatarInput"
           >
-            <svg
-              v-if="!avatarUploading"
-              width="18"
-              height="18"
-              viewBox="0 0 20 20"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M16 2L20 6L16 10" />
-              <path d="M4 18v-4M4 14L2 16l-2-2" />
-              <circle cx="10" cy="10" r="8" />
-            </svg>
-            <span v-else class="avatar-upload-spinner">...</span>
-          </button>
+            <template v-if="avatarUploading">
+              <div class="profile-avatar-placeholder profile-avatar-placeholder-loading">
+                <span class="avatar-placeholder-text">...</span>
+              </div>
+            </template>
+            <template v-else-if="avatarSrc && !avatarLoadError">
+              <img
+                :src="avatarSrc"
+                alt=""
+                class="profile-avatar"
+                width="120"
+                height="120"
+                @error="avatarLoadError = true"
+              />
+            </template>
+            <template v-else>
+              <div class="profile-avatar-placeholder">
+                <svg class="avatar-placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="8" r="4"/>
+                  <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+                </svg>
+                <span class="avatar-placeholder-text">Фото</span>
+              </div>
+            </template>
+            <input
+              ref="avatarInputRef"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="avatar-input-hidden"
+              aria-label="Выберите фото (JPG, PNG или WebP)"
+              @change="onAvatarFileChange"
+            />
+          </div>
+          <p v-if="avatarError" class="avatar-error">{{ avatarError }}</p>
+          <p class="avatar-hint">JPG, PNG или WebP, до 2 МБ</p>
         </div>
         <div class="profile-header-info">
           <h1>{{ authStore.userName }}</h1>
@@ -62,7 +70,7 @@
             </span>
           </div>
           <div class="profile-actions">
-            <button type="button" class="btn btn-primary btn-sm">Редактировать профиль</button>
+            <button type="button" class="btn btn-primary btn-sm" @click="openEditProfileModal">Редактировать профиль</button>
           </div>
         </div>
       </div>
@@ -290,11 +298,41 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit profile modal (email) -->
+    <div v-if="editProfileModalOpen" class="modal-overlay" @click.self="editProfileModalOpen = false">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Редактировать профиль</h2>
+          <button type="button" class="modal-close" aria-label="Закрыть" @click="editProfileModalOpen = false">&times;</button>
+        </div>
+        <form class="modal-body" @submit.prevent="saveEditProfile">
+          <p class="modal-hint">Контактные данные (имя, телефон, район, Telegram) можно изменить в блоке «Личные данные» ниже.</p>
+          <div class="form-group">
+            <label for="edit-profile-email">Email</label>
+            <input
+              id="edit-profile-email"
+              v-model="editProfileEmail"
+              type="email"
+              class="form-control"
+              required
+              placeholder="email@example.com"
+            />
+            <span v-if="editProfileError" class="form-error">{{ editProfileError }}</span>
+            <span v-if="editProfileSuccess" class="form-success">{{ editProfileSuccess }}</span>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" @click="editProfileModalOpen = false">Отмена</button>
+            <button type="submit" class="btn btn-primary" :disabled="editProfileSaving">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import { getMyRequests } from '../api/requests.js'
@@ -305,31 +343,37 @@ const router = useRouter()
 const authStore = useAuthStore()
 const avatarInputRef = ref(null)
 const avatarUploading = ref(false)
+const avatarLoadError = ref(false)
+const avatarSrc = computed(() => authStore.userAvatar)
+watch(avatarSrc, () => { avatarLoadError.value = false })
 
 function triggerAvatarInput() {
   if (avatarInputRef.value) avatarInputRef.value.click()
 }
 
+const avatarError = ref('')
+
 async function onAvatarFileChange(e) {
   const file = e.target.files?.[0]
   if (!file) return
+  avatarError.value = ''
   const allowed = ['image/jpeg', 'image/png', 'image/webp']
   if (!allowed.includes(file.type)) {
-    profileError.value = 'Допустимы только JPG, PNG или WebP'
+    avatarError.value = 'Допустимы только JPG, PNG или WebP'
     return
   }
   if (file.size > 2 * 1024 * 1024) {
-    profileError.value = 'Размер файла не более 2 МБ'
+    avatarError.value = 'Размер файла не более 2 МБ'
     return
   }
   e.target.value = ''
-  profileError.value = ''
   avatarUploading.value = true
   try {
     const { avatarUrl } = await uploadAvatar(file)
     authStore.setAuth(authStore.token, { ...authStore.user, avatarUrl })
+    avatarLoadError.value = false
   } catch (err) {
-    profileError.value = err.message || 'Не удалось загрузить фото'
+    avatarError.value = err.message || 'Не удалось загрузить фото'
   } finally {
     avatarUploading.value = false
   }
@@ -345,6 +389,43 @@ const profileForm = reactive({
 const profileSaving = ref(false)
 const profileError = ref('')
 const profileSuccess = ref('')
+
+const editProfileModalOpen = ref(false)
+const editProfileEmail = ref('')
+const editProfileSaving = ref(false)
+const editProfileError = ref('')
+const editProfileSuccess = ref('')
+
+function openEditProfileModal() {
+  editProfileEmail.value = authStore.user?.email ?? ''
+  editProfileError.value = ''
+  editProfileSuccess.value = ''
+  editProfileModalOpen.value = true
+}
+
+async function saveEditProfile() {
+  const email = editProfileEmail.value?.trim()
+  if (!email) {
+    editProfileError.value = 'Введите email'
+    return
+  }
+  editProfileError.value = ''
+  editProfileSuccess.value = ''
+  editProfileSaving.value = true
+  try {
+    const { user: updated } = await updateProfile({ email })
+    authStore.setAuth(authStore.token, updated)
+    editProfileSuccess.value = 'Email сохранён. Подтвердите новый email по ссылке из письма.'
+    setTimeout(() => {
+      editProfileModalOpen.value = false
+      editProfileSuccess.value = ''
+    }, 2500)
+  } catch (e) {
+    editProfileError.value = e.message || 'Не удалось сохранить email'
+  } finally {
+    editProfileSaving.value = false
+  }
+}
 
 const deletePassword = ref('')
 const deleteConfirm = ref(false)
@@ -459,9 +540,58 @@ const achievements = ref([
   opacity: 0;
   pointer-events: none;
 }
-.avatar-upload-btn:disabled {
-  opacity: 0.7;
-  cursor: wait;
+.profile-avatar-clickable {
+  cursor: pointer;
+}
+.profile-avatar-clickable:hover {
+  opacity: 0.95;
+}
+.profile-avatar-clickable.avatar-uploading {
+  pointer-events: none;
+  opacity: 0.8;
+}
+.profile-avatar-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+.profile-avatar-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid var(--gray-200);
+  background: var(--gray-100);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+.avatar-placeholder-icon {
+  color: var(--gray-400);
+}
+.avatar-placeholder-text {
+  font-size: var(--font-size-sm);
+  color: var(--gray-500);
+}
+.profile-avatar-placeholder-loading .avatar-placeholder-text {
+  animation: avatar-pulse 0.8s ease-in-out infinite;
+}
+@keyframes avatar-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.avatar-error { color: var(--red-600, #dc2626); font-size: var(--font-size-sm); margin: 0.25rem 0 0; }
+.avatar-hint { font-size: var(--font-size-xs); color: var(--gray-500); margin: 0.25rem 0 0; }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--gray-300);
+  color: var(--gray-700);
+}
+.btn-outline:hover:not(:disabled) {
+  background: var(--gray-50);
+  border-color: var(--gray-400);
 }
 .card-danger-zone .card-title {
   color: var(--red-600, #dc2626);
@@ -480,4 +610,48 @@ const achievements = ref([
 .btn-danger:hover:not(:disabled) {
   background: var(--red-700, #b91c1c);
 }
+
+/* Edit profile modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-lg);
+}
+.modal-card {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 420px;
+  width: 100%;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--gray-200);
+}
+.modal-title { margin: 0; font-size: 1.25rem; }
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--gray-500);
+  line-height: 1;
+}
+.modal-close:hover { color: var(--gray-700); }
+.modal-body { padding: var(--spacing-xl); }
+.modal-hint {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  margin-bottom: var(--spacing-lg);
+}
+.modal-body .form-group { margin-bottom: 1rem; }
+.modal-body .form-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
 </style>

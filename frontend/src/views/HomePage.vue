@@ -81,17 +81,20 @@
     <!-- How it works Section -->
     <HowItWorksSection />
 
-    <!-- CTA Section -->
-    <CTASection />
+    <!-- CTA Section (скрыта для авторизованных) -->
+    <CTASection v-if="!authStore.isAuthenticated" />
 
     <AppFooter />
   </div>
 </template>
 
 <script setup>
+import { useAuthStore } from '../stores/auth.js'
 import AppHeader from '../components/layout/AppHeader.vue'
 import AppFooter from '../components/layout/AppFooter.vue'
 import FeaturesSection from '../components/sections/FeaturesSection.vue'
 import HowItWorksSection from '../components/sections/HowItWorksSection.vue'
 import CTASection from '../components/sections/CTASection.vue'
+
+const authStore = useAuthStore()
 </script>

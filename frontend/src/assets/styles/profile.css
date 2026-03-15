@@ -108,7 +108,7 @@
   margin: 0 auto;
   padding: 0 var(--spacing-xl) var(--spacing-xl);
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: minmax(380px, 520px) 1fr;
   gap: var(--spacing-xl);
 }
 
@@ -268,7 +268,7 @@
 .profile-requests-list {
   list-style: none;
   margin: 0;
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
 }
 
 .profile-request-item {
@@ -281,7 +281,7 @@
 
 .profile-request-link {
   display: block;
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
   text-decoration: none;
   color: inherit;
   border-radius: var(--radius-md);
@@ -412,7 +412,9 @@
 }
 
 .achievement-item.locked {
-  opacity: 0.5;
+  /* Тот же цвет фона, что и у разблокированных */
+  background: var(--gray-50);
+  border-color: var(--gray-200);
 }
 
 .achievement-icon {

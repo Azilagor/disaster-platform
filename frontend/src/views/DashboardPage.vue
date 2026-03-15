@@ -6,7 +6,7 @@
         <p class="text-muted">Обзор активности и запросов</p>
       </div>
       <div class="topbar-right">
-        <button type="button" class="icon-button" title="Уведомления">
+        <router-link to="/notifications" class="icon-button" title="Уведомления">
           <svg
             width="20"
             height="20"
@@ -18,7 +18,7 @@
             <path d="M10 2a6 6 0 0 1 6 6v4l2 2v1H2v-1l2-2V8a6 6 0 0 1 6-6z" />
             <circle cx="14" cy="4" r="2" fill="currentColor" class="notification-dot" />
           </svg>
-        </button>
+        </router-link>
         <router-link to="/profile" class="user-menu">
           <img
             v-if="authStore.userAvatar"
@@ -134,11 +134,14 @@
       <div class="card card-wide">
         <div class="card-header">
           <h2 class="card-title">Последние запросы</h2>
-          <select v-model="requestsFilter" class="form-select-sm">
-            <option value="all">Все</option>
-            <option value="urgent">Срочные</option>
-            <option value="new">Новые</option>
-          </select>
+          <div class="card-header-actions">
+            <select v-model="requestsFilter" class="form-select-sm">
+              <option value="all">Все</option>
+              <option value="urgent">Срочные</option>
+              <option value="new">Новые</option>
+            </select>
+            <router-link v-if="authStore.user?.role === 'USER' || isCoordinatorOrAdmin" to="/create-request" class="btn btn-sm btn-primary">Создать запрос</router-link>
+          </div>
         </div>
         <div v-if="requestsLoading" class="request-list request-list-loading">Загрузка заявок...</div>
         <div v-else-if="requestsError" class="request-list request-list-error">{{ requestsError }}</div>
@@ -329,23 +332,25 @@ onMounted(async () => {
     } catch (_) {
       userStats.value = null
     }
-  }
-  try {
-    const data = await getVolunteers({ limit: 10 })
-    const items = data.items ?? []
-    volunteers.value = items.map((v) => ({
-      id: v.id,
-      name: [v.firstName, v.lastName].filter(Boolean).join(' ') || 'Волонтёр',
-      avatar: v.avatarUrl || '',
-      skills: [],
-      location: DISTRICT_LABELS[v.district] || v.district || '—',
-      status: 'volunteer',
-      statusLabel: 'Волонтёр',
-      rating: v._count?.volunteerRequests ?? '—',
-    }))
-  } catch (_) {
-    volunteers.value = []
-  } finally {
+    try {
+      const data = await getVolunteers({ limit: 10 })
+      const items = data.items ?? []
+      volunteers.value = items.map((v) => ({
+        id: v.id,
+        name: [v.firstName, v.lastName].filter(Boolean).join(' ') || 'Волонтёр',
+        avatar: v.avatarUrl || '',
+        skills: [],
+        location: DISTRICT_LABELS[v.district] || v.district || '—',
+        status: 'volunteer',
+        statusLabel: 'Волонтёр',
+        rating: v._count?.volunteerRequests ?? '—',
+      }))
+    } catch (_) {
+      volunteers.value = []
+    } finally {
+      volunteersLoading.value = false
+    }
+  } else {
     volunteersLoading.value = false
   }
   try {
