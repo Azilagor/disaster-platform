@@ -1,22 +1,20 @@
 <template>
   <div>
-    <div style="margin-bottom: var(--spacing-lg);">
-      <router-link to="/incidents" class="btn btn-secondary">← К списку</router-link>
-    </div>
+    <div class="back-row"><router-link to="/admin/incidents" class="btn btn-secondary">← К списку</router-link></div>
     <div v-if="loading" class="card">Загрузка…</div>
     <template v-else-if="incident">
       <div class="card">
         <h1 class="page-title">Инцидент #{{ incident.id }}</h1>
-        <dl style="display: grid; gap: var(--spacing-sm);">
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Заголовок</dt><dd>{{ incident.title }}</dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Описание</dt><dd>{{ incident.description || '—' }}</dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Статус</dt><dd><span class="badge">{{ incident.status }}</span></dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Уровень</dt><dd>{{ incident.severity }}</dd></div>
-          <div><dt style="color: var(--gray-500); font-size: var(--font-size-sm);">Район</dt><dd>{{ incident.district }}</dd></div>
+        <dl class="detail-list">
+          <div><dt>Заголовок</dt><dd>{{ incident.title }}</dd></div>
+          <div><dt>Описание</dt><dd>{{ incident.description || '—' }}</dd></div>
+          <div><dt>Статус</dt><dd><span class="badge">{{ incident.status }}</span></dd></div>
+          <div><dt>Уровень</dt><dd>{{ incident.severity }}</dd></div>
+          <div><dt>Район</dt><dd>{{ incident.district }}</dd></div>
         </dl>
       </div>
       <div class="card">
-        <h2 style="font-size: var(--font-size-lg); margin-bottom: var(--spacing-md);">Редактирование</h2>
+        <h2 class="section-title">Редактирование</h2>
         <form @submit.prevent="save">
           <div class="form-group">
             <label>Заголовок</label>
@@ -49,24 +47,24 @@
             </select>
           </div>
           <button type="submit" class="btn btn-primary" :disabled="saving">Сохранить</button>
-          <span v-if="saveMessage" style="margin-left: var(--spacing-md);" :class="saveError ? 'form-error' : ''">{{ saveMessage }}</span>
+          <span v-if="saveMessage" class="msg" :class="{ error: saveError }">{{ saveMessage }}</span>
         </form>
       </div>
-      <div class="card" v-if="incident.status !== 'RESOLVED'">
-        <h2 style="font-size: var(--font-size-lg); margin-bottom: var(--spacing-md);">Смена статуса</h2>
-        <div style="display: flex; gap: var(--spacing-md); align-items: center;">
+      <div v-if="incident.status !== 'RESOLVED'" class="card">
+        <h2 class="section-title">Смена статуса</h2>
+        <div class="inline-row">
           <select v-model="statusSelect" class="form-control" style="max-width: 160px;">
             <option value="ACTIVE">ACTIVE</option>
             <option value="RESOLVING">RESOLVING</option>
             <option value="RESOLVED">RESOLVED</option>
           </select>
           <button type="button" class="btn btn-secondary" :disabled="statusSaving" @click="changeStatus">Изменить статус</button>
-          <span v-if="statusMessage" :class="statusError ? 'form-error' : ''">{{ statusMessage }}</span>
+          <span v-if="statusMessage" class="msg" :class="{ error: statusError }">{{ statusMessage }}</span>
         </div>
       </div>
       <div class="card">
         <button type="button" class="btn btn-danger" :disabled="deleting" @click="confirmDelete">Удалить инцидент</button>
-        <span v-if="deleteMessage" class="form-error" style="margin-left: var(--spacing-md);">{{ deleteMessage }}</span>
+        <span v-if="deleteMessage" class="msg error">{{ deleteMessage }}</span>
       </div>
     </template>
     <div v-else class="card">Инцидент не найден</div>
@@ -76,7 +74,7 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getIncident, updateIncident, setIncidentStatus, deleteIncident } from '../api/incidents.js'
+import { getIncident, updateIncident, patchIncidentStatus, deleteIncident } from '../../api/incidents.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -91,7 +89,6 @@ const statusMessage = ref('')
 const statusError = ref(false)
 const deleteMessage = ref('')
 const statusSelect = ref('ACTIVE')
-
 const form = reactive({ title: '', description: '', severity: '', district: '' })
 
 function fillForm() {
@@ -146,7 +143,7 @@ async function changeStatus() {
   statusError.value = false
   statusSaving.value = true
   try {
-    const data = await setIncidentStatus(incident.value.id, statusSelect.value)
+    const data = await patchIncidentStatus(incident.value.id, statusSelect.value)
     if (data.incident) incident.value = data.incident
     statusMessage.value = data.message || 'Статус изменён'
   } catch (e) {
@@ -158,16 +155,29 @@ async function changeStatus() {
 }
 
 async function confirmDelete() {
-  if (!confirm('Удалить инцидент? Это действие необратимо.')) return
+  if (!confirm('Удалить инцидент?')) return
   deleteMessage.value = ''
   deleting.value = true
   try {
     await deleteIncident(incident.value.id)
-    router.push('/incidents')
+    router.push('/admin/incidents')
   } catch (e) {
-    deleteMessage.value = e.message || 'Ошибка удаления'
+    deleteMessage.value = e.message || 'Ошибка'
   } finally {
     deleting.value = false
   }
 }
 </script>
+
+<style scoped>
+.back-row { margin-bottom: var(--spacing-lg); }
+.detail-list { display: grid; gap: var(--spacing-sm); }
+.detail-list dt { font-size: var(--font-size-sm); color: var(--gray-500); }
+.section-title { font-size: var(--font-size-lg); margin-bottom: var(--spacing-md); }
+.form-group { margin-bottom: var(--spacing-md); }
+.form-group label { display: block; margin-bottom: var(--spacing-xs); font-weight: 600; font-size: var(--font-size-sm); }
+.inline-row { display: flex; gap: var(--spacing-md); align-items: center; flex-wrap: wrap; }
+.msg { margin-left: var(--spacing-md); }
+.msg.error { color: var(--danger); }
+.badge { padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+</style>

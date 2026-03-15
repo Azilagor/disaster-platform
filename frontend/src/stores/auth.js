@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as authApi from '../api/auth.js'
+import { getUploadsFullUrl } from '../api/config.js'
 
 const ROLE_LABELS = {
   user: 'Пользователь',
   volunteer: 'Волонтёр',
   coordinator: 'Координатор',
+  admin: 'Администратор',
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -22,6 +24,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const isAuthenticated = computed(() => !!token.value)
+  const isAdmin = computed(() => (user.value?.role || '').toUpperCase() === 'ADMIN')
 
   const userName = computed(() => {
     if (!user.value) return 'Пользователь'
@@ -31,11 +34,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   const userRole = computed(() => (user.value && ROLE_LABELS[user.value.role]) || 'Пользователь')
 
-  const userAvatar = computed(() =>
-    user.value?.email
-      ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.value.email)}`
-      : ''
-  )
+  const userAvatar = computed(() => {
+    if (user.value?.avatarUrl) return getUploadsFullUrl(user.value.avatarUrl)
+    if (user.value?.email) {
+      return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.value.email)}`
+    }
+    return ''
+  })
 
   function setAuth(newToken, newUser) {
     token.value = newToken
@@ -94,6 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     user,
     isAuthenticated,
+    isAdmin,
     userName,
     userRole,
     userAvatar,
