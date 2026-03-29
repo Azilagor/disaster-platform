@@ -17,4 +17,4 @@ router.delete("/:id", auth, allowRoles("ADMIN"),              c.deleteUser);
 // Смена роли
 router.patch("/:id/role", auth, allowRoles("ADMIN"), c.changeRole);
 
-module.exports = router;
+module.exports = router;  
