@@ -43,3 +43,11 @@ export async function setUserRoleAdmin(id, role) {
   })
   return parseJsonResponse(res)
 }
+
+export async function resetUserPassword(id, newPassword) {
+  const res = await fetchWithAuth(`/admin/users/${id}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ newPassword }),
+  })
+  return parseJsonResponse(res)
+}
