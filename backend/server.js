@@ -209,27 +209,27 @@ async function startServer() {
     logger.info("=".repeat(45));
   });
   // ── Крон: парсинг новостей раз в день в 06:00 ───────────────
-  try {
-    const cron = require("node-cron");
-    const { runScraper } = require("./src/services/newsScraper.service");
+  // try {
+  //   const cron = require("node-cron");
+  //   const { runScraper } = require("./src/services/newsScraper.service");
 
-    // Запуск при старте сервера (чтобы сразу были данные)
-    runScraper().catch((e) =>
-      logger.warn("Initial news scrape failed", { message: e.message })
-    );
+  //   // Запуск при старте сервера (чтобы сразу были данные)
+  //   runScraper().catch((e) =>
+  //     logger.warn("Initial news scrape failed", { message: e.message })
+  //   );
 
-    // Каждый день в 06:00
-    cron.schedule("0 6 * * *", () => {
-      logger.info("Cron: running daily news scrape");
-      runScraper().catch((e) =>
-        logger.error("Cron news scrape failed", { message: e.message })
-      );
-    });
+  //   // Каждый день в 06:00
+  //   cron.schedule("0 6 * * *", () => {
+  //     logger.info("Cron: running daily news scrape");
+  //     runScraper().catch((e) =>
+  //       logger.error("Cron news scrape failed", { message: e.message })
+  //     );
+  //   });
 
-    logger.info("✅ News scraper cron scheduled (daily 06:00)");
-  } catch (err) {
-    logger.warn("News scraper cron not started", { message: err.message });
-  }
+  //   logger.info("✅ News scraper cron scheduled (daily 06:00)");
+  // } catch (err) {
+  //   logger.warn("News scraper cron not started", { message: err.message });
+  // }
 
 
   // ── Graceful shutdown ──────────────────────────────────────
