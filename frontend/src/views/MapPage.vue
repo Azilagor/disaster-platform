@@ -50,6 +50,13 @@
           </button>
         </div>
       <div class="filter-group">
+        <span class="filter-label">Показать</span>
+        <select v-model="filters.scope" class="form-control">
+          <option value="all">Все заявки</option>
+          <option value="mine">Мои заявки</option>
+        </select>
+      </div>
+      <div class="filter-group">
         <span class="filter-label">Район</span>
         <select v-model="filters.district" class="form-control">
           <option value="">Все районы</option>
@@ -146,12 +153,13 @@
 import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
-import { getRequestsMap, volunteerRespond } from '../api/requests.js'
+import { getRequestsMap, getMyRequests, volunteerRespond } from '../api/requests.js'
 import { withLoading } from '../stores/loading.js'
 import {
   ALLOWED_DISTRICTS,
   ALLOWED_PRIORITIES,
   ALLOWED_PROBLEM_TYPES,
+  DISTRICT_CENTROIDS,
   DISTRICT_LABELS,
   PRIORITY_LABELS,
   PROBLEM_TYPE_LABELS,
@@ -179,7 +187,49 @@ const mapRef = ref(null)
 let map = null
 let markersLayer = null
 
-const filters = reactive({ district: '', priority: '', problemType: '' })
+const filters = reactive({ scope: 'all', district: '', priority: '', problemType: '' })
+
+const ACTIVE_STATUSES = new Set(['NEW', 'IN_PROGRESS'])
+const PRIORITY_RANK = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+
+function matchesMapFilters(r) {
+  if (filters.district && r.district !== filters.district) return false
+  if (filters.priority && r.priority !== filters.priority) return false
+  if (filters.problemType && r.problemType !== filters.problemType) return false
+  return true
+}
+
+/** Строка из GET /requests/my приводим к тому же виду, что у точек с /requests/map */
+function rowForMap(r) {
+  return {
+    id: r.id,
+    title: r.title,
+    problemType: r.problemType,
+    priority: r.priority,
+    status: r.status,
+    address: r.address,
+    district: r.district,
+    landmark: r.landmark ?? null,
+    peopleCount: r.peopleCount,
+    contactPhone: r.contactPhone ?? undefined,
+    latitude: r.latitude ?? null,
+    longitude: r.longitude ?? null,
+    isPublished: r.isPublished,
+    createdAt: r.createdAt,
+    _count: { volunteers: Array.isArray(r.volunteers) ? r.volunteers.length : r._count?.volunteers ?? 0 },
+  }
+}
+
+function sortMapItems(items) {
+  return [...items].sort((a, b) => {
+    const pa = PRIORITY_RANK[a.priority] ?? 2
+    const pb = PRIORITY_RANK[b.priority] ?? 2
+    if (pa !== pb) return pa - pb
+    const ta = new Date(a.createdAt || 0).getTime()
+    const tb = new Date(b.createdAt || 0).getTime()
+    return tb - ta
+  })
+}
 
 async function loadMapRequests() {
   loading.value = true
@@ -188,8 +238,40 @@ async function loadMapRequests() {
     if (filters.district) params.district = filters.district
     if (filters.priority) params.priority = filters.priority
     if (filters.problemType) params.problemType = filters.problemType
-    const data = await withLoading(() => getRequestsMap(params))
-    requests.value = data.items ?? []
+
+    const items = await withLoading(async () => {
+      if (filters.scope === 'mine') {
+        const mine = await getMyRequests({ limit: 100 })
+        return sortMapItems(
+          mine
+            .filter((r) => ACTIVE_STATUSES.has(r.status))
+            .filter(matchesMapFilters)
+            .map(rowForMap)
+        )
+      }
+
+      const [mapData, mineList] = await Promise.all([
+        getRequestsMap(params),
+        getMyRequests({ limit: 100 }).catch(() => []),
+      ])
+
+      let merged = [...(mapData.items ?? [])]
+      const seen = new Set(merged.map((r) => r.id))
+      const mineRows = (mineList || [])
+        .filter((r) => ACTIVE_STATUSES.has(r.status))
+        .filter(matchesMapFilters)
+        .map(rowForMap)
+
+      for (const r of mineRows) {
+        if (!seen.has(r.id)) {
+          merged.push(r)
+          seen.add(r.id)
+        }
+      }
+      return sortMapItems(merged)
+    })
+
+    requests.value = items
   } catch (e) {
     requests.value = []
   } finally {
@@ -198,7 +280,7 @@ async function loadMapRequests() {
 }
 
 watch(
-  () => [filters.district, filters.priority, filters.problemType],
+  () => [filters.scope, filters.district, filters.priority, filters.problemType],
   () => loadMapRequests(),
   { immediate: true }
 )
@@ -245,17 +327,27 @@ function makePinIcon(color) {
   `
 }
 
+/** Координаты маркера: из заявки или центр района (если геокод не задан). */
+function markerLatLng(r) {
+  const lat = r.latitude != null ? Number(r.latitude) : NaN
+  const lng = r.longitude != null ? Number(r.longitude) : NaN
+  if (!Number.isNaN(lat) && !Number.isNaN(lng)) return [lat, lng]
+  const c = r.district && DISTRICT_CENTROIDS[r.district]
+  if (c && typeof c.lat === 'number' && typeof c.lng === 'number') return [c.lat, c.lng]
+  return null
+}
+
 function updateMarkers() {
   if (!map || !markersLayer) return
   markersLayer.clearLayers()
   const L = window.L
   if (!L) return
   const list = requests.value
-  const withCoords = list.filter((r) => r.latitude != null && r.longitude != null && !Number.isNaN(Number(r.latitude)) && !Number.isNaN(Number(r.longitude)))
+  const withCoords = list.map((r) => ({ r, pos: markerLatLng(r) })).filter((x) => x.pos != null)
   const fullDetail = canOpenFullDetail.value
-  withCoords.forEach((r) => {
-    const lat = Number(r.latitude)
-    const lon = Number(r.longitude)
+  withCoords.forEach(({ r, pos }) => {
+    const lat = pos[0]
+    const lon = pos[1]
     const color = PRIORITY_COLORS[r.priority] || PRIORITY_COLORS.MEDIUM
     const icon = L.divIcon({
       className: 'request-marker request-marker--pin',

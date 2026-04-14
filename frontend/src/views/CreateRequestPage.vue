@@ -309,7 +309,7 @@ async function submitRequest() {
   if (!validateForm()) return
   submitting.value = true
   try {
-    await withLoading(() =>
+    const { request: created } = await withLoading(() =>
       createRequest({
         problemType: form.problemType,
         title: form.title?.trim() ?? '',
@@ -323,7 +323,11 @@ async function submitRequest() {
         contactComment: form.contactComment?.trim() || undefined,
       })
     )
-    router.push('/map')
+    if (created?.id != null) {
+      router.push({ path: '/map', query: { request: String(created.id) } })
+    } else {
+      router.push('/map')
+    }
   } catch (error) {
     submitError.value = error.message || 'Не удалось отправить запрос. Попробуйте позже.'
   } finally {
