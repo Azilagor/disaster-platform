@@ -2,8 +2,8 @@
   <div>
     <div class="topbar">
       <div class="topbar-left">
-        <h1>Волонтёры</h1>
-        <p class="text-muted">Поиск и назначение волонтёров на заявки (назначение — в разделе «Заявки»)</p>
+        <h1>{{ t('volunteers.title') }}</h1>
+        <p class="text-muted">{{ t('volunteers.subtitle') }}</p>
       </div>
     </div>
 
@@ -12,26 +12,26 @@
         <input
           v-model="filters.search"
           type="text"
-          placeholder="Поиск по имени, email, телефону..."
+          :placeholder="t('volunteers.searchPh')"
           class="form-control"
         />
       </div>
       <select v-model="filters.district" class="form-control">
-        <option value="">Все районы</option>
-        <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] }}</option>
+        <option value="">{{ t('volunteers.allDistricts') }}</option>
+        <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ enumLabel.district(d) }}</option>
       </select>
-      <button type="button" class="btn btn-primary" @click="loadVolunteers">Обновить</button>
+      <button type="button" class="btn btn-primary" @click="loadVolunteers">{{ t('common.refresh') }}</button>
     </div>
 
     <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
-            <th>Имя</th>
-            <th>Email</th>
-            <th>Телефон</th>
-            <th>Район</th>
-            <th>Заявок</th>
+            <th>{{ t('volunteers.thName') }}</th>
+            <th>{{ t('volunteers.thEmail') }}</th>
+            <th>{{ t('volunteers.thPhone') }}</th>
+            <th>{{ t('volunteers.thDistrict') }}</th>
+            <th>{{ t('volunteers.thTasks') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -51,22 +51,22 @@
               </div>
             </td>
             <td>{{ v.email }}</td>
-            <td>{{ v.phone || '—' }}</td>
-            <td>{{ DISTRICT_LABELS[v.district] || v.district || '—' }}</td>
+            <td>{{ v.phone || t('common.emDash') }}</td>
+            <td>{{ enumLabel.district(v.district) || v.district || t('common.emDash') }}</td>
             <td>{{ v._count?.volunteerRequests ?? 0 }}</td>
             <td>
-              <router-link :to="'/requests'" class="btn btn-sm btn-outline">Назначить на заявку</router-link>
+              <router-link :to="'/requests'" class="btn btn-sm btn-outline">{{ t('volunteers.assignLink') }}</router-link>
             </td>
           </tr>
         </tbody>
       </table>
-      <p v-if="loading" class="text-muted">Загрузка...</p>
-      <p v-else-if="!volunteers.length" class="text-muted">Нет волонтёров</p>
+      <p v-if="loading" class="text-muted">{{ t('common.loadingEllipsis') }}</p>
+      <p v-else-if="!volunteers.length" class="text-muted">{{ t('volunteers.empty') }}</p>
     </div>
 
     <div v-if="totalPages > 1" class="pagination">
       <button type="button" class="btn btn-sm btn-outline" :disabled="filters.page <= 1" @click="filters.page--">‹</button>
-      <span class="pagination-info">{{ filters.page }} из {{ totalPages }}</span>
+      <span class="pagination-info">{{ t('volunteers.paginationOf', { page: filters.page, total: totalPages }) }}</span>
       <button type="button" class="btn btn-sm btn-outline" :disabled="filters.page >= totalPages" @click="filters.page++">›</button>
     </div>
   </div>
@@ -74,9 +74,14 @@
 
 <script setup>
 import { ref, reactive, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getVolunteers } from '../api/users.js'
 import { withLoading } from '../stores/loading.js'
-import { ALLOWED_DISTRICTS, DISTRICT_LABELS } from '../constants/requests.js'
+import { ALLOWED_DISTRICTS } from '../constants/requests.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
+
+const { t } = useI18n()
+const enumLabel = useEnumLabel()
 
 const loading = ref(false)
 const volunteers = ref([])

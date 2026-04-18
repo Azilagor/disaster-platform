@@ -2,7 +2,7 @@
   <section id="how-it-works" class="how-it-works">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">Как это работает</h2>
+        <h2 class="section-title">{{ $t('howItWorks.title') }}</h2>
       </div>
       <div class="steps">
         <div v-for="step in steps" :key="step.number" class="step">
@@ -18,27 +18,31 @@
 </template>
 
 <script setup>
-const steps = [
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
+const steps = computed(() => [
   {
     number: 1,
-    title: 'Создание запроса',
-    description:
-      'Пострадавший или очевидец создаёт запрос о помощи с описанием проблемы и местоположением',
+    title: t('howItWorks.s1t'),
+    description: t('howItWorks.s1d'),
   },
   {
     number: 2,
-    title: 'Координация',
-    description: 'Координатор просматривает запросы на карте и назначает подходящих волонтёров',
+    title: t('howItWorks.s2t'),
+    description: t('howItWorks.s2d'),
   },
   {
     number: 3,
-    title: 'Оказание помощи',
-    description: 'Волонтёр получает уведомление, прибывает на место и оказывает помощь',
+    title: t('howItWorks.s3t'),
+    description: t('howItWorks.s3d'),
   },
   {
     number: 4,
-    title: 'Отчётность',
-    description: 'Статус обновляется, помощь отмечается как выполненная, система сохраняет отчёт',
+    title: t('howItWorks.s4t'),
+    description: t('howItWorks.s4d'),
   },
-]
+])
 </script>

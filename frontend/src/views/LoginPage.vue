@@ -25,13 +25,13 @@
         <!-- Login Form -->
         <div v-show="isLoginMode" class="auth-form-wrapper">
           <div class="form-header">
-            <h1>Вход в систему</h1>
-            <p>Введите свои учётные данные для доступа</p>
+            <h1>{{ $t('auth.loginTitle') }}</h1>
+            <p>{{ $t('auth.loginSubtitle') }}</p>
           </div>
 
           <form class="auth-form" @submit.prevent="handleLogin">
             <div class="form-group">
-              <label for="login-email">Email</label>
+              <label for="login-email">{{ $t('common.email') }}</label>
               <input
                 id="login-email"
                 v-model="loginForm.email"
@@ -41,11 +41,11 @@
                 placeholder="your@email.com"
                 required
               />
-              <span v-if="loginErrors.email" class="form-error">{{ loginErrors.email }}</span>
+              <span v-if="loginErrors.email" class="form-error">{{ loginFieldError('email') }}</span>
             </div>
 
             <div class="form-group">
-              <label for="login-password">Пароль</label>
+              <label for="login-password">{{ $t('auth.password') }}</label>
               <input
                 id="login-password"
                 v-model="loginForm.password"
@@ -55,24 +55,24 @@
                 placeholder="••••••••"
                 required
               />
-              <span v-if="loginErrors.password" class="form-error">{{ loginErrors.password }}</span>
+              <span v-if="loginErrors.password" class="form-error">{{ loginFieldError('password') }}</span>
             </div>
 
             <div class="form-options">
               <label class="checkbox-label">
                 <input v-model="loginForm.remember" type="checkbox" />
-                <span>Запомнить меня</span>
+                <span>{{ $t('auth.rememberMe') }}</span>
               </label>
-              <a href="#" class="link" @click.prevent="showForgotPassword">Забыли пароль?</a>
+              <a href="#" class="link" @click.prevent="showForgotPassword">{{ $t('auth.forgotPassword') }}</a>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-block">Войти</button>
+            <button type="submit" class="btn btn-primary btn-block">{{ $t('auth.signIn') }}</button>
           </form>
 
           <div class="form-footer">
             <p>
-              Нет аккаунта?
-              <a href="#" class="link" @click.prevent="toggleMode">Зарегистрироваться</a>
+              {{ $t('auth.noAccount') }}
+              <a href="#" class="link" @click.prevent="toggleMode">{{ $t('auth.signUpLink') }}</a>
             </p>
           </div>
         </div>
@@ -81,18 +81,18 @@
         <div v-if="showForgotModal" class="modal-overlay" @click.self="closeForgotModal">
           <div class="modal forgot-modal">
             <div class="modal-header">
-              <h2>Восстановление пароля</h2>
+              <h2>{{ $t('auth.forgotTitle') }}</h2>
               <button
                 type="button"
                 class="modal-close"
-                aria-label="Закрыть"
+                :aria-label="$t('auth.closeAria')"
                 @click="closeForgotModal"
               >
                 &times;
               </button>
             </div>
             <p class="modal-desc">
-              Введите email вашего аккаунта — мы отправим ссылку для сброса пароля.
+              {{ $t('auth.forgotDesc') }}
             </p>
             <div v-if="forgotError" class="auth-message auth-message-error">{{ forgotError }}</div>
             <div v-if="forgotSuccess" class="auth-message auth-message-success">
@@ -100,7 +100,7 @@
             </div>
             <form v-if="!forgotSuccess" class="auth-form" @submit.prevent="handleForgotPassword">
               <div class="form-group">
-                <label for="forgot-email">Email</label>
+                <label for="forgot-email">{{ $t('common.email') }}</label>
                 <input
                   id="forgot-email"
                   v-model="forgotForm.email"
@@ -110,18 +110,18 @@
                   placeholder="your@email.com"
                   required
                 />
-                <span v-if="forgotErrors.email" class="form-error">{{ forgotErrors.email }}</span>
+                <span v-if="forgotErrors.email" class="form-error">{{ forgotFieldError('email') }}</span>
               </div>
               <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" @click="closeForgotModal">
-                  Отмена
+                  {{ $t('common.cancel') }}
                 </button>
-                <button type="submit" class="btn btn-primary">Отправить</button>
+                <button type="submit" class="btn btn-primary">{{ $t('auth.send') }}</button>
               </div>
             </form>
             <div v-else class="modal-actions">
               <button type="button" class="btn btn-primary" @click="closeForgotModal">
-                Закрыть
+                {{ $t('common.close') }}
               </button>
             </div>
           </div>
@@ -130,14 +130,14 @@
         <!-- Registration Form -->
         <div v-show="!isLoginMode" class="auth-form-wrapper">
           <div class="form-header">
-            <h1>Создать аккаунт</h1>
-            <p>Заполните форму для регистрации</p>
+            <h1>{{ $t('auth.registerTitle') }}</h1>
+            <p>{{ $t('auth.registerSubtitle') }}</p>
           </div>
 
           <form class="auth-form" @submit.prevent="handleRegister">
             <div class="form-row">
               <div class="form-group">
-                <label for="reg-firstname">Имя</label>
+                <label for="reg-firstname">{{ $t('profile.firstName') }}</label>
                 <input
                   id="reg-firstname"
                   v-model="registerForm.firstName"
@@ -148,11 +148,11 @@
                   required
                 />
                 <span v-if="registerErrors.firstName" class="form-error">{{
-                  registerErrors.firstName
+                  registerFieldError('firstName')
                 }}</span>
               </div>
               <div class="form-group">
-                <label for="reg-lastname">Фамилия</label>
+                <label for="reg-lastname">{{ $t('profile.lastName') }}</label>
                 <input
                   id="reg-lastname"
                   v-model="registerForm.lastName"
@@ -163,13 +163,13 @@
                   required
                 />
                 <span v-if="registerErrors.lastName" class="form-error">{{
-                  registerErrors.lastName
+                  registerFieldError('lastName')
                 }}</span>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="reg-email">Email</label>
+              <label for="reg-email">{{ $t('common.email') }}</label>
               <input
                 id="reg-email"
                 v-model="registerForm.email"
@@ -179,11 +179,11 @@
                 placeholder="your@email.com"
                 required
               />
-              <span v-if="registerErrors.email" class="form-error">{{ registerErrors.email }}</span>
+              <span v-if="registerErrors.email" class="form-error">{{ registerFieldError('email') }}</span>
             </div>
 
             <div class="form-group">
-              <label for="reg-phone">Телефон</label>
+              <label for="reg-phone">{{ $t('auth.phone') }}</label>
               <input
                 id="reg-phone"
                 v-model="registerForm.phone"
@@ -193,11 +193,11 @@
                 placeholder="+7 (___) ___-__-__"
                 required
               />
-              <span v-if="registerErrors.phone" class="form-error">{{ registerErrors.phone }}</span>
+              <span v-if="registerErrors.phone" class="form-error">{{ registerFieldError('phone') }}</span>
             </div>
 
             <div class="form-group">
-              <label for="reg-password">Пароль</label>
+              <label for="reg-password">{{ $t('auth.password') }}</label>
               <input
                 id="reg-password"
                 v-model="registerForm.password"
@@ -208,12 +208,12 @@
                 required
               />
               <span v-if="registerErrors.password" class="form-error">{{
-                registerErrors.password
+                registerFieldError('password')
               }}</span>
             </div>
 
             <div class="form-group">
-              <label for="reg-password-confirm">Подтвердите пароль</label>
+              <label for="reg-password-confirm">{{ $t('auth.confirmPassword') }}</label>
               <input
                 id="reg-password-confirm"
                 v-model="registerForm.passwordConfirm"
@@ -224,12 +224,12 @@
                 required
               />
               <span v-if="registerErrors.passwordConfirm" class="form-error">{{
-                registerErrors.passwordConfirm
+                registerFieldError('passwordConfirm')
               }}</span>
             </div>
 
             <div class="form-group">
-              <label for="reg-role">Роль</label>
+              <label for="reg-role">{{ $t('auth.role') }}</label>
               <select
                 id="reg-role"
                 v-model="registerForm.role"
@@ -237,29 +237,33 @@
                 :class="{ 'is-invalid': registerErrors.role }"
                 required
               >
-                <option value="">Выберите роль</option>
-                <option value="user">Пользователь (нуждающийся в помощи)</option>
-                <option value="volunteer">Волонтёр</option>
-                <option value="coordinator">Координатор</option>
+                <option value="">{{ $t('auth.selectRoleOption') }}</option>
+                <option value="user">{{ $t('auth.roleUser') }}</option>
+                <option value="volunteer">{{ $t('auth.roleVolunteer') }}</option>
+                <option value="coordinator">{{ $t('auth.roleCoordinator') }}</option>
               </select>
-              <span v-if="registerErrors.role" class="form-error">{{ registerErrors.role }}</span>
+              <span v-if="registerErrors.role" class="form-error">{{ registerFieldError('role') }}</span>
             </div>
 
             <div class="form-group">
               <label class="checkbox-label">
                 <input v-model="registerForm.agreeTerms" type="checkbox" required />
-                <span
-                  >Я согласен с <a href="#" class="link">условиями использования</a> и
-                  <a href="#" class="link">политикой конфиденциальности</a></span
-                >
+                <span>
+                  {{ $t('auth.legalIntro') }}<a href="#" class="link">{{ $t('auth.termsLink') }}</a
+                  >{{ $t('auth.legalMid') }}<a href="#" class="link">{{ $t('auth.privacyLink') }}</a
+                  >{{ $t('auth.legalSuffix') }}
+                </span>
               </label>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-block">Зарегистрироваться</button>
+            <button type="submit" class="btn btn-primary btn-block">{{ $t('auth.submitRegister') }}</button>
           </form>
 
           <div class="form-footer">
-            <p>Уже есть аккаунт? <a href="#" class="link" @click.prevent="toggleMode">Войти</a></p>
+            <p>
+              {{ $t('auth.haveAccount') }}
+              <a href="#" class="link" @click.prevent="toggleMode">{{ $t('auth.signInLink') }}</a>
+            </p>
           </div>
         </div>
       </div>
@@ -267,8 +271,8 @@
       <!-- Right Side - Info -->
       <div class="auth-info-section">
         <div class="auth-info-content">
-          <h2>Добро пожаловать в DisasterHelp</h2>
-          <p>Платформа для координации помощи при чрезвычайных ситуациях</p>
+          <h2>{{ $t('auth.welcomeTitle') }}</h2>
+          <p>{{ $t('auth.welcomeSubtitle') }}</p>
           <div class="info-features">
             <div class="info-feature">
               <div class="info-icon">
@@ -282,7 +286,7 @@
                   />
                 </svg>
               </div>
-              <p>Быстрая координация помощи</p>
+              <p>{{ $t('auth.feature1') }}</p>
             </div>
             <div class="info-feature">
               <div class="info-icon">
@@ -296,7 +300,7 @@
                   />
                 </svg>
               </div>
-              <p>Управление запросами и волонтёрами</p>
+              <p>{{ $t('auth.feature2') }}</p>
             </div>
             <div class="info-feature">
               <div class="info-icon">
@@ -310,7 +314,7 @@
                   />
                 </svg>
               </div>
-              <p>Отслеживание статусов в реальном времени</p>
+              <p>{{ $t('auth.feature3') }}</p>
             </div>
           </div>
         </div>
@@ -320,8 +324,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import * as authApi from '../api/auth.js'
 import { withLoading } from '../stores/loading.js'
 import { useAuthStore } from '../stores/auth.js'
@@ -333,14 +338,36 @@ import {
   validatePasswordMatch,
   validateRegistrationForm,
 } from '../utils/validation.js'
+import { translateValidationError } from '../utils/translateValidationError.js'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
-// Форма зависит от маршрута: /register — регистрация, /login — вход
+const { t } = useI18n()
+
 const isLoginMode = computed(() => route.path !== '/register')
 const errorMessage = ref('')
-const successMessage = ref(route.query.verified ? 'Почта подтверждена. Войдите в систему.' : '')
+const successMessage = ref('')
+
+watch(
+  () => [route.path, route.query.verified],
+  ([path, verified]) => {
+    if (path === '/login' && verified) {
+      successMessage.value = t('auth.verifiedLogin')
+    }
+  },
+  { immediate: true }
+)
+
+function loginFieldError(key) {
+  return translateValidationError(loginErrors.value[key], t)
+}
+function registerFieldError(key) {
+  return translateValidationError(registerErrors.value[key], t)
+}
+function forgotFieldError(key) {
+  return translateValidationError(forgotErrors.value[key], t)
+}
 
 // Ошибки валидации под полями
 const loginErrors = ref({})
@@ -387,7 +414,7 @@ const handleLogin = async () => {
   loginForm.value.password = password
 
   const emailErr = validateEmail(email)
-  const passwordErr = password ? null : 'Пароль обязателен'
+  const passwordErr = password ? null : 'validation.loginPasswordRequired'
   loginErrors.value = {
     email: emailErr || undefined,
     password: passwordErr || undefined,
@@ -404,7 +431,7 @@ const handleLogin = async () => {
     }
     router.push('/dashboard')
   } catch (error) {
-    errorMessage.value = error.message || 'Ошибка входа. Попробуйте снова.'
+    errorMessage.value = error.message || t('auth.loginError')
   }
 }
 
@@ -436,10 +463,10 @@ const handleRegister = async () => {
         role: form.role || 'user',
       })
     )
-    successMessage.value = message || 'Регистрация успешна. Проверьте почту для подтверждения.'
+    successMessage.value = message || t('auth.registerSuccess')
     toggleMode()
   } catch (error) {
-    errorMessage.value = error.message || 'Ошибка регистрации. Попробуйте снова.'
+    errorMessage.value = error.message || t('auth.registerError')
   }
 }
 
@@ -471,10 +498,9 @@ const handleForgotPassword = async () => {
   if (emailErr) return
   try {
     const { message } = await withLoading(() => authApi.forgotPassword(email))
-    forgotSuccess.value = message || 'Проверьте почту — мы отправили ссылку для сброса пароля.'
+    forgotSuccess.value = message || t('auth.forgotSuccessDefault')
   } catch (error) {
-    forgotError.value =
-      error.message || 'Не удалось отправить письмо. Проверьте email или попробуйте позже.'
+    forgotError.value = error.message || t('auth.forgotSendError')
   }
 }
 </script>

@@ -1,34 +1,34 @@
 <template>
   <div>
-    <div class="back-row"><router-link to="/admin/users" class="btn btn-secondary">← К списку</router-link></div>
-    <div v-if="loading" class="card">Загрузка…</div>
+    <div class="back-row"><router-link to="/admin/users" class="btn btn-secondary">{{ t('common.backToList') }}</router-link></div>
+    <div v-if="loading" class="card">{{ t('admin.loading') }}</div>
     <template v-else-if="user">
       <div class="card">
-        <h1 class="page-title">Пользователь #{{ user.id }}</h1>
+        <h1 class="page-title">{{ t('admin.userDetail.title', { id: user.id }) }}</h1>
         <dl class="detail-list">
-          <div><dt>Имя</dt><dd>{{ [user.firstName, user.lastName].filter(Boolean).join(' ') || '—' }}</dd></div>
-          <div><dt>Email</dt><dd>{{ user.email }}</dd></div>
-          <div><dt>Телефон</dt><dd>{{ user.phone || '—' }}</dd></div>
-          <div><dt>Роль</dt><dd><span class="badge">{{ user.role }}</span></dd></div>
+          <div><dt>{{ t('admin.thName') }}</dt><dd>{{ [user.firstName, user.lastName].filter(Boolean).join(' ') || t('common.emDash') }}</dd></div>
+          <div><dt>{{ t('admin.userDetail.email') }}</dt><dd>{{ user.email }}</dd></div>
+          <div><dt>{{ t('admin.userDetail.phone') }}</dt><dd>{{ user.phone || t('common.emDash') }}</dd></div>
+          <div><dt>{{ t('admin.thRole') }}</dt><dd><span class="badge">{{ user.role }}</span></dd></div>
         </dl>
       </div>
       <div class="card">
-        <h2 class="section-title">Редактирование</h2>
+        <h2 class="section-title">{{ t('admin.userDetail.edit') }}</h2>
         <form @submit.prevent="saveUser">
           <div class="form-group">
-            <label>Имя</label>
+            <label>{{ t('profile.firstName') }}</label>
             <input v-model="form.firstName" class="form-control" />
           </div>
           <div class="form-group">
-            <label>Фамилия</label>
+            <label>{{ t('profile.lastName') }}</label>
             <input v-model="form.lastName" class="form-control" />
           </div>
           <div class="form-group">
-            <label>Email</label>
+            <label>{{ t('admin.userDetail.email') }}</label>
             <input v-model="form.email" type="email" class="form-control" />
           </div>
           <div class="form-group">
-            <label>Роль</label>
+            <label>{{ t('admin.thRole') }}</label>
             <select v-model="form.role" class="form-control">
               <option value="USER">USER</option>
               <option value="VOLUNTEER">VOLUNTEER</option>
@@ -36,12 +36,12 @@
               <option value="ADMIN">ADMIN</option>
             </select>
           </div>
-          <button type="submit" class="btn btn-primary" :disabled="saving">Сохранить</button>
+          <button type="submit" class="btn btn-primary" :disabled="saving">{{ t('common.save') }}</button>
           <span v-if="saveMessage" class="msg" :class="{ error: saveError }">{{ saveMessage }}</span>
         </form>
       </div>
       <div class="card">
-        <h2 class="section-title">Смена роли</h2>
+        <h2 class="section-title">{{ t('admin.userDetail.changeRole') }}</h2>
         <div class="inline-row">
           <select v-model="roleSelect" class="form-control" style="max-width: 140px;">
             <option value="USER">USER</option>
@@ -49,24 +49,26 @@
             <option value="COORDINATOR">COORDINATOR</option>
             <option value="ADMIN">ADMIN</option>
           </select>
-          <button type="button" class="btn btn-secondary" :disabled="roleSaving" @click="changeRole">Изменить роль</button>
+          <button type="button" class="btn btn-secondary" :disabled="roleSaving" @click="changeRole">{{ t('admin.userDetail.changeRoleBtn') }}</button>
           <span v-if="roleMessage" class="msg" :class="{ error: roleError }">{{ roleMessage }}</span>
         </div>
       </div>
       <div v-if="user.role !== 'ADMIN'" class="card">
-        <button type="button" class="btn btn-danger" :disabled="deleting" @click="confirmDelete">Удалить пользователя</button>
+        <button type="button" class="btn btn-danger" :disabled="deleting" @click="confirmDelete">{{ t('admin.userDetail.delete') }}</button>
         <span v-if="deleteMessage" class="msg error">{{ deleteMessage }}</span>
       </div>
     </template>
-    <div v-else class="card">Пользователь не найден</div>
+    <div v-else class="card">{{ t('admin.userDetail.notFound') }}</div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { getUser, updateUser, setUserRole, deleteUser } from '../../api/users.js'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const user = ref(null)
@@ -120,9 +122,9 @@ async function saveUser() {
       role: form.role,
     })
     if (data.user) user.value = data.user
-    saveMessage.value = data.message || 'Сохранено'
+    saveMessage.value = data.message || t('admin.userDetail.saved')
   } catch (e) {
-    saveMessage.value = e.message || 'Ошибка'
+    saveMessage.value = e.message || t('admin.genericError')
     saveError.value = true
   } finally {
     saving.value = false
@@ -136,9 +138,9 @@ async function changeRole() {
   try {
     const data = await setUserRole(user.value.id, roleSelect.value)
     if (data.user) user.value = data.user
-    roleMessage.value = data.message || 'Роль изменена'
+    roleMessage.value = data.message || t('admin.userDetail.roleChanged')
   } catch (e) {
-    roleMessage.value = e.message || 'Ошибка'
+    roleMessage.value = e.message || t('admin.genericError')
     roleError.value = true
   } finally {
     roleSaving.value = false
@@ -146,14 +148,14 @@ async function changeRole() {
 }
 
 async function confirmDelete() {
-  if (!confirm('Удалить пользователя?')) return
+  if (!confirm(t('admin.userDetail.deleteConfirm'))) return
   deleteMessage.value = ''
   deleting.value = true
   try {
     await deleteUser(user.value.id)
     router.push('/admin/users')
   } catch (e) {
-    deleteMessage.value = e.message || 'Ошибка'
+    deleteMessage.value = e.message || t('admin.genericError')
   } finally {
     deleting.value = false
   }

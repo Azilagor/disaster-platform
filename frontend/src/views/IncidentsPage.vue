@@ -2,49 +2,49 @@
   <div>
     <div class="topbar">
       <div class="topbar-left">
-        <h1>Инциденты</h1>
-        <p class="text-muted">ЧС: список, создание, редактирование, смена статуса</p>
+        <h1>{{ t('incidents.title') }}</h1>
+        <p class="text-muted">{{ t('incidents.subtitle') }}</p>
       </div>
       <div class="topbar-right">
-        <button type="button" class="btn btn-primary" @click="openCreateModal">Создать инцидент</button>
+        <button type="button" class="btn btn-primary" @click="openCreateModal">{{ t('incidents.create') }}</button>
       </div>
     </div>
 
     <div class="toolbar">
       <select v-model="filters.severity" class="form-control">
-        <option value="">Все степени</option>
-        <option v-for="s in ALLOWED_SEVERITIES" :key="s" :value="s">{{ SEVERITY_LABELS[s] }}</option>
+        <option value="">{{ t('incidents.allSeverities') }}</option>
+        <option v-for="s in ALLOWED_SEVERITIES" :key="s" :value="s">{{ enumLabel.severity(s) }}</option>
       </select>
       <select v-model="filters.status" class="form-control">
-        <option value="">Все статусы</option>
-        <option v-for="s in ALLOWED_INCIDENT_STATUSES" :key="s" :value="s">{{ INCIDENT_STATUS_LABELS[s] }}</option>
+        <option value="">{{ t('incidents.allStatuses') }}</option>
+        <option v-for="s in ALLOWED_INCIDENT_STATUSES" :key="s" :value="s">{{ enumLabel.incidentStatus(s) }}</option>
       </select>
       <select v-model="filters.district" class="form-control">
-        <option value="">Все районы</option>
-        <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] }}</option>
+        <option value="">{{ t('incidents.allDistricts') }}</option>
+        <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ enumLabel.district(d) }}</option>
       </select>
-      <button type="button" class="btn btn-primary" @click="loadIncidents">Обновить</button>
+      <button type="button" class="btn btn-primary" @click="loadIncidents">{{ t('common.refresh') }}</button>
     </div>
 
     <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Заголовок</th>
-            <th>Степень</th>
-            <th>Район</th>
-            <th>Статус</th>
-            <th>Создан</th>
-            <th>Действия</th>
+            <th>{{ t('incidents.thId') }}</th>
+            <th>{{ t('incidents.thTitle') }}</th>
+            <th>{{ t('incidents.thSeverity') }}</th>
+            <th>{{ t('incidents.thDistrict') }}</th>
+            <th>{{ t('incidents.thStatus') }}</th>
+            <th>{{ t('incidents.thCreated') }}</th>
+            <th>{{ t('incidents.thActions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="inc in incidents" :key="inc.id">
             <td>{{ inc.id }}</td>
             <td>{{ inc.title }}</td>
-            <td>{{ SEVERITY_LABELS[inc.severity] || inc.severity }}</td>
-            <td>{{ DISTRICT_LABELS[inc.district] || inc.district }}</td>
+            <td>{{ enumLabel.severity(inc.severity) || inc.severity }}</td>
+            <td>{{ enumLabel.district(inc.district) || inc.district }}</td>
             <td>
               <select
                 :value="inc.status"
@@ -52,25 +52,25 @@
                 :disabled="!incidentStatusTransitions[inc.status]?.length"
                 @change="patchIncidentStatus(inc.id, $event.target.value)"
               >
-                <option :value="inc.status">{{ INCIDENT_STATUS_LABELS[inc.status] }}</option>
+                <option :value="inc.status">{{ enumLabel.incidentStatus(inc.status) }}</option>
                 <option
                   v-for="next in (incidentStatusTransitions[inc.status] || [])"
                   :key="next"
                   :value="next"
                 >
-                  {{ INCIDENT_STATUS_LABELS[next] }}
+                  {{ enumLabel.incidentStatus(next) }}
                 </option>
               </select>
             </td>
             <td>{{ formatDate(inc.createdAt) }}</td>
             <td class="actions-cell">
-              <button type="button" class="btn btn-sm btn-outline" @click="openEditModal(inc)">Изменить</button>
+              <button type="button" class="btn btn-sm btn-outline" @click="openEditModal(inc)">{{ t('incidents.editBtn') }}</button>
             </td>
           </tr>
         </tbody>
       </table>
-      <p v-if="loading" class="text-muted">Загрузка...</p>
-      <p v-else-if="!incidents.length" class="text-muted">Нет инцидентов</p>
+      <p v-if="loading" class="text-muted">{{ t('common.loadingEllipsis') }}</p>
+      <p v-else-if="!incidents.length" class="text-muted">{{ t('incidents.empty') }}</p>
     </div>
 
     <!-- Create modal -->
@@ -78,40 +78,40 @@
       <div class="modal-overlay"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Создать инцидент</h2>
-          <button type="button" class="modal-close" aria-label="Закрыть" @click="createModalOpen = false">&times;</button>
+          <h2>{{ t('incidents.createModalTitle') }}</h2>
+          <button type="button" class="modal-close" :aria-label="t('common.close')" @click="createModalOpen = false">&times;</button>
         </div>
         <form class="modal-body" @submit.prevent="submitCreate">
           <div class="form-group">
-            <label for="create-title">Заголовок</label>
-            <input id="create-title" v-model="createForm.title" type="text" class="form-control" placeholder="5–200 символов" />
+            <label for="create-title">{{ t('incidents.labelTitle') }}</label>
+            <input id="create-title" v-model="createForm.title" type="text" class="form-control" :placeholder="t('incidents.titlePh')" />
             <span v-if="createErrors.title" class="form-error">{{ createErrors.title }}</span>
           </div>
           <div class="form-group">
-            <label for="create-description">Описание</label>
-            <textarea id="create-description" v-model="createForm.description" class="form-control" rows="3" placeholder="Минимум 20 символов"></textarea>
+            <label for="create-description">{{ t('incidents.labelDescription') }}</label>
+            <textarea id="create-description" v-model="createForm.description" class="form-control" rows="3" :placeholder="t('incidents.descPh')"></textarea>
             <span v-if="createErrors.description" class="form-error">{{ createErrors.description }}</span>
           </div>
           <div class="form-group">
-            <label for="create-severity">Степень</label>
+            <label for="create-severity">{{ t('incidents.labelSeverity') }}</label>
             <select id="create-severity" v-model="createForm.severity" class="form-control">
-              <option value="">Выберите</option>
-              <option v-for="s in ALLOWED_SEVERITIES" :key="s" :value="s">{{ SEVERITY_LABELS[s] }}</option>
+              <option value="">{{ t('incidents.selectOption') }}</option>
+              <option v-for="s in ALLOWED_SEVERITIES" :key="s" :value="s">{{ enumLabel.severity(s) }}</option>
             </select>
             <span v-if="createErrors.severity" class="form-error">{{ createErrors.severity }}</span>
           </div>
           <div class="form-group">
-            <label for="create-district">Район</label>
+            <label for="create-district">{{ t('incidents.labelDistrict') }}</label>
             <select id="create-district" v-model="createForm.district" class="form-control">
-              <option value="">Выберите</option>
-              <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] }}</option>
+              <option value="">{{ t('incidents.selectOption') }}</option>
+              <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ enumLabel.district(d) }}</option>
             </select>
             <span v-if="createErrors.district" class="form-error">{{ createErrors.district }}</span>
           </div>
           <div v-if="createError" class="auth-message auth-message-error">{{ createError }}</div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="createModalOpen = false">Отмена</button>
-            <button type="submit" class="btn btn-primary" :disabled="creating">Создать</button>
+            <button type="button" class="btn btn-secondary" @click="createModalOpen = false">{{ t('common.cancel') }}</button>
+            <button type="submit" class="btn btn-primary" :disabled="creating">{{ t('incidents.createSubmit') }}</button>
           </div>
         </form>
       </div>
@@ -122,36 +122,36 @@
       <div class="modal-overlay"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Изменить инцидент #{{ editIncident.id }}</h2>
-          <button type="button" class="modal-close" aria-label="Закрыть" @click="editIncident = null">&times;</button>
+          <h2>{{ t('incidents.editModalTitle', { id: editIncident.id }) }}</h2>
+          <button type="button" class="modal-close" :aria-label="t('common.close')" @click="editIncident = null">&times;</button>
         </div>
         <form class="modal-body" @submit.prevent="submitEdit">
           <div class="form-group">
-            <label>Заголовок</label>
+            <label>{{ t('incidents.labelTitle') }}</label>
             <input v-model="editForm.title" type="text" class="form-control" />
             <span v-if="editErrors.title" class="form-error">{{ editErrors.title }}</span>
           </div>
           <div class="form-group">
-            <label>Описание</label>
+            <label>{{ t('incidents.labelDescription') }}</label>
             <textarea v-model="editForm.description" class="form-control" rows="3"></textarea>
             <span v-if="editErrors.description" class="form-error">{{ editErrors.description }}</span>
           </div>
           <div class="form-group">
-            <label>Степень</label>
+            <label>{{ t('incidents.labelSeverity') }}</label>
             <select v-model="editForm.severity" class="form-control">
-              <option v-for="s in ALLOWED_SEVERITIES" :key="s" :value="s">{{ SEVERITY_LABELS[s] }}</option>
+              <option v-for="s in ALLOWED_SEVERITIES" :key="s" :value="s">{{ enumLabel.severity(s) }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Район</label>
+            <label>{{ t('incidents.labelDistrict') }}</label>
             <select v-model="editForm.district" class="form-control">
-              <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] }}</option>
+              <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ enumLabel.district(d) }}</option>
             </select>
           </div>
           <div v-if="editError" class="auth-message auth-message-error">{{ editError }}</div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="editIncident = null">Отмена</button>
-            <button type="submit" class="btn btn-primary" :disabled="saving">Сохранить</button>
+            <button type="button" class="btn btn-secondary" @click="editIncident = null">{{ t('common.cancel') }}</button>
+            <button type="submit" class="btn btn-primary" :disabled="saving">{{ t('common.save') }}</button>
           </div>
         </form>
       </div>
@@ -160,7 +160,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   getIncidents,
   createIncident,
@@ -172,11 +173,20 @@ import { withLoading } from '../stores/loading.js'
 import {
   ALLOWED_SEVERITIES,
   ALLOWED_INCIDENT_STATUSES,
-  SEVERITY_LABELS,
-  INCIDENT_STATUS_LABELS,
   incidentStatusTransitions,
 } from '../constants/incidents.js'
-import { ALLOWED_DISTRICTS, DISTRICT_LABELS } from '../constants/requests.js'
+import { ALLOWED_DISTRICTS } from '../constants/requests.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
+
+const { t, locale } = useI18n()
+const enumLabel = useEnumLabel()
+
+const dateLocaleTag = computed(() => {
+  const l = locale.value
+  if (l === 'en') return 'en-US'
+  if (l === 'kk') return 'kk-KZ'
+  return 'ru-RU'
+})
 
 const loading = ref(false)
 const incidents = ref([])
@@ -207,8 +217,8 @@ watch(
 )
 
 function formatDate(str) {
-  if (!str) return '—'
-  return new Date(str).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })
+  if (!str) return t('common.emDash')
+  return new Date(str).toLocaleString(dateLocaleTag.value, { dateStyle: 'short', timeStyle: 'short' })
 }
 
 async function patchIncidentStatus(id, status) {
@@ -216,7 +226,7 @@ async function patchIncidentStatus(id, status) {
     await withLoading(() => apiPatchIncidentStatus(id, status))
     loadIncidents()
   } catch (e) {
-    alert(e.message || 'Ошибка смены статуса')
+    alert(e.message || t('incidents.statusChangeError'))
   }
 }
 
@@ -242,22 +252,22 @@ function openCreateModal() {
 
 function validateCreate() {
   let ok = true
-  const t = (createForm.title || '').trim()
+  const title = (createForm.title || '').trim()
   const d = (createForm.description || '').trim()
-  if (t.length < 5 || t.length > 200) {
-    createErrors.title = 'Заголовок: от 5 до 200 символов'
+  if (title.length < 5 || title.length > 200) {
+    createErrors.title = t('incidents.errTitleRange')
     ok = false
   } else createErrors.title = ''
   if (d.length < 20) {
-    createErrors.description = 'Описание: минимум 20 символов'
+    createErrors.description = t('incidents.errDescMin')
     ok = false
   } else createErrors.description = ''
   if (!createForm.severity) {
-    createErrors.severity = 'Выберите степень'
+    createErrors.severity = t('incidents.errSeverity')
     ok = false
   } else createErrors.severity = ''
   if (!createForm.district) {
-    createErrors.district = 'Выберите район'
+    createErrors.district = t('incidents.errDistrict')
     ok = false
   } else createErrors.district = ''
   return ok
@@ -279,7 +289,7 @@ async function submitCreate() {
     createModalOpen.value = false
     loadIncidents()
   } catch (e) {
-    createError.value = e.message || 'Не удалось создать инцидент'
+    createError.value = e.message || t('incidents.createError')
   } finally {
     creating.value = false
   }
@@ -304,20 +314,20 @@ async function openEditModal(inc) {
     editErrors.description = ''
     editError.value = ''
   } catch (e) {
-    alert(e.message || 'Не удалось загрузить инцидент')
+    alert(e.message || t('incidents.loadIncidentError'))
   }
 }
 
 function validateEdit() {
   let ok = true
-  const t = (editForm.title || '').trim()
+  const title = (editForm.title || '').trim()
   const d = (editForm.description || '').trim()
-  if (t.length < 5 || t.length > 200) {
-    editErrors.title = 'Заголовок: от 5 до 200 символов'
+  if (title.length < 5 || title.length > 200) {
+    editErrors.title = t('incidents.errTitleRange')
     ok = false
   } else editErrors.title = ''
   if (d.length < 20) {
-    editErrors.description = 'Описание: минимум 20 символов'
+    editErrors.description = t('incidents.errDescMin')
     ok = false
   } else editErrors.description = ''
   return ok
@@ -340,7 +350,7 @@ async function submitEdit() {
     editIncident.value = null
     loadIncidents()
   } catch (e) {
-    editError.value = e.message || 'Не удалось сохранить'
+    editError.value = e.message || t('incidents.saveError')
   } finally {
     saving.value = false
   }

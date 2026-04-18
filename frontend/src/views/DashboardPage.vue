@@ -2,11 +2,11 @@
   <div>
     <div class="topbar">
       <div class="topbar-left">
-        <h1>Дашборд</h1>
-        <p class="text-muted">Обзор активности и запросов</p>
+        <h1>{{ $t('dashboard.title') }}</h1>
+        <p class="text-muted">{{ $t('dashboard.subtitle') }}</p>
       </div>
       <div class="topbar-right">
-        <router-link to="/notifications" class="icon-button" title="Уведомления">
+        <router-link to="/notifications" class="icon-button" :title="$t('common.notifications')">
           <svg
             width="20"
             height="20"
@@ -40,7 +40,7 @@
       <div class="stat-card">
         <div class="stat-header">
           <div>
-            <span class="stat-title">Активные запросы</span>
+            <span class="stat-title">{{ $t('dashboard.statActiveTitle') }}</span>
             <span class="stat-change positive">+12%</span>
           </div>
           <div class="stat-icon stat-icon-blue">
@@ -60,14 +60,18 @@
           </div>
         </div>
         <div class="stat-number">{{ requestsLoading ? '—' : requests.length }}</div>
-        <p class="stat-description">Моих заявок</p>
+        <p class="stat-description">{{ $t('dashboard.statMyRequests') }}</p>
       </div>
       <div class="stat-card">
         <div class="stat-header">
-          <span class="stat-title">{{ isCoordinatorOrAdmin ? 'Пользователей' : 'Волонтёры онлайн' }}</span>
+          <span class="stat-title">{{
+            isCoordinatorOrAdmin ? $t('dashboard.statUsers') : $t('dashboard.statVolunteersOnline')
+          }}</span>
         </div>
         <div class="stat-number">{{ isCoordinatorOrAdmin && userStats ? userStats.total : '24' }}</div>
-        <p class="stat-description">{{ isCoordinatorOrAdmin ? 'Всего в системе' : 'Готовы помочь' }}</p>
+        <p class="stat-description">{{
+          isCoordinatorOrAdmin ? $t('dashboard.statInSystem') : $t('dashboard.statReady')
+        }}</p>
         <div class="stat-icon stat-icon-green">
           <svg
             width="24"
@@ -86,11 +90,11 @@
       </div>
       <div class="stat-card">
         <div class="stat-header">
-          <span class="stat-title">Выполнено сегодня</span>
+          <span class="stat-title">{{ $t('dashboard.statDoneToday') }}</span>
           <span class="stat-change negative">-2%</span>
         </div>
         <div class="stat-number">19</div>
-        <p class="stat-description">Запросов закрыто</p>
+        <p class="stat-description">{{ $t('dashboard.statClosed') }}</p>
         <div class="stat-icon stat-icon-orange">
           <svg
             width="24"
@@ -107,10 +111,14 @@
       </div>
       <div class="stat-card">
         <div class="stat-header">
-          <span class="stat-title">{{ isCoordinatorOrAdmin ? 'Без верификации' : 'Срочные' }}</span>
+          <span class="stat-title">{{
+            isCoordinatorOrAdmin ? $t('dashboard.statUnverified') : $t('dashboard.statUrgent')
+          }}</span>
         </div>
         <div class="stat-number">{{ isCoordinatorOrAdmin && userStats ? userStats.unverified : '7' }}</div>
-        <p class="stat-description">{{ isCoordinatorOrAdmin ? 'Email не подтверждён' : 'Требуют внимания' }}</p>
+        <p class="stat-description">{{
+          isCoordinatorOrAdmin ? $t('dashboard.statEmailUnverified') : $t('dashboard.statNeedAttention')
+        }}</p>
         <div class="stat-icon stat-icon-purple">
           <svg
             width="24"
@@ -133,20 +141,26 @@
     <div class="dashboard-grid">
       <div class="card card-wide">
         <div class="card-header">
-          <h2 class="card-title">Последние запросы</h2>
+          <h2 class="card-title">{{ $t('dashboard.recentRequests') }}</h2>
           <div class="card-header-actions">
             <select v-model="requestsFilter" class="form-select-sm">
-              <option value="all">Все</option>
-              <option value="urgent">Срочные</option>
-              <option value="new">Новые</option>
+              <option value="all">{{ $t('dashboard.filterAll') }}</option>
+              <option value="urgent">{{ $t('dashboard.filterUrgent') }}</option>
+              <option value="new">{{ $t('dashboard.filterNew') }}</option>
             </select>
-            <router-link v-if="authStore.user?.role === 'USER' || isCoordinatorOrAdmin" to="/create-request" class="btn btn-sm btn-primary">Создать запрос</router-link>
+            <router-link
+              v-if="authStore.user?.role === 'USER' || isCoordinatorOrAdmin"
+              to="/create-request"
+              class="btn btn-sm btn-primary"
+              >{{ $t('dashboard.createRequestLink') }}</router-link
+            >
           </div>
         </div>
-        <div v-if="requestsLoading" class="request-list request-list-loading">Загрузка заявок...</div>
+        <div v-if="requestsLoading" class="request-list request-list-loading">{{ $t('dashboard.loadingRequests') }}</div>
         <div v-else-if="requestsError" class="request-list request-list-error">{{ requestsError }}</div>
         <div v-else-if="displayedRequests.length === 0" class="request-list request-list-empty">
-          Нет заявок. <router-link to="/create-request">Создать запрос</router-link>
+          {{ $t('dashboard.noRequests') }}
+          <router-link to="/create-request">{{ $t('dashboard.createRequestLink') }}</router-link>
         </div>
         <div v-else class="request-list">
           <router-link
@@ -190,11 +204,16 @@
 
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">Волонтёры</h2>
-          <router-link v-if="authStore.user?.role === 'COORDINATOR' || authStore.user?.role === 'ADMIN'" to="/volunteers" class="btn btn-sm btn-outline">Все</router-link>
+          <h2 class="card-title">{{ $t('dashboard.volunteersTitle') }}</h2>
+          <router-link
+            v-if="authStore.user?.role === 'COORDINATOR' || authStore.user?.role === 'ADMIN'"
+            to="/volunteers"
+            class="btn btn-sm btn-outline"
+            >{{ $t('dashboard.allBtn') }}</router-link
+          >
         </div>
-        <div v-if="volunteersLoading" class="volunteer-list volunteer-list-loading">Загрузка...</div>
-        <div v-else-if="!volunteers.length" class="volunteer-list volunteer-list-empty">Нет данных о волонтёрах</div>
+        <div v-if="volunteersLoading" class="volunteer-list volunteer-list-loading">{{ $t('dashboard.loadingShort') }}</div>
+        <div v-else-if="!volunteers.length" class="volunteer-list volunteer-list-empty">{{ $t('dashboard.noVolunteerData') }}</div>
         <div v-else class="volunteer-list">
           <div v-for="v in volunteers" :key="v.id" class="volunteer-item">
             <img v-if="v.avatar" :src="v.avatar" alt="" class="volunteer-avatar" width="48" height="48" />
@@ -221,23 +240,25 @@
 
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">Активные инциденты</h2>
-          <router-link v-if="isCoordinatorOrAdmin" to="/incidents" class="btn btn-sm btn-outline">Все</router-link>
+          <h2 class="card-title">{{ $t('dashboard.incidentsTitle') }}</h2>
+          <router-link v-if="isCoordinatorOrAdmin" to="/incidents" class="btn btn-sm btn-outline">{{
+            $t('dashboard.allBtn')
+          }}</router-link>
         </div>
-        <div v-if="incidentsLoading" class="incidents-loading">Загрузка...</div>
-        <div v-else-if="!activeIncidents.length" class="incidents-empty">Нет активных инцидентов</div>
+        <div v-if="incidentsLoading" class="incidents-loading">{{ $t('dashboard.loadingShort') }}</div>
+        <div v-else-if="!activeIncidents.length" class="incidents-empty">{{ $t('dashboard.noIncidents') }}</div>
         <ul v-else class="incidents-list">
           <li v-for="inc in activeIncidents" :key="inc.id" class="incident-item">
             <span class="incident-severity" :class="(inc.severity || '').toLowerCase()">{{ severityLabel(inc.severity) }}</span>
             <router-link :to="'/incidents?highlight=' + inc.id" class="incident-title">{{ inc.title }}</router-link>
-            <span class="incident-district">{{ DISTRICT_LABELS[inc.district] || inc.district }}</span>
+            <span class="incident-district">{{ districtLabel(inc.district) }}</span>
           </li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">Активность</h2>
+          <h2 class="card-title">{{ $t('dashboard.activityTitle') }}</h2>
         </div>
         <div class="activity-list">
           <div v-for="a in activity" :key="a.id" class="activity-item">
@@ -255,13 +276,16 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth.js'
 import { getMyRequests } from '../api/requests.js'
 import { getVolunteers, getUsersStats } from '../api/users.js'
 import { getActiveIncidents } from '../api/incidents.js'
-import { PRIORITY_LABELS, DISTRICT_LABELS } from '../constants/requests.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
 
 const authStore = useAuthStore()
+const { t } = useI18n()
+const labels = useEnumLabel()
 const isCoordinatorOrAdmin = computed(() => {
   const r = (authStore.user?.role || '').toUpperCase()
   return r === 'COORDINATOR' || r === 'ADMIN'
@@ -277,22 +301,27 @@ const userStats = ref(null)
 const activeIncidents = ref([])
 const incidentsLoading = ref(true)
 
-const SEVERITY_LABELS = { CRITICAL: 'Критический', HIGH: 'Высокий', MEDIUM: 'Средний', LOW: 'Низкий' }
 function severityLabel(s) {
-  return SEVERITY_LABELS[s] || s || '—'
+  if (!s) return t('common.emDash')
+  return labels.severity(s) || s
+}
+
+function districtLabel(code) {
+  if (!code) return t('common.emDash')
+  return labels.district(code) || code
 }
 
 function formatTimeAgo(dateStr) {
-  if (!dateStr) return '—'
+  if (!dateStr) return t('common.emDash')
   const d = new Date(dateStr)
   const now = new Date()
   const diffMs = now - d
   const diffMins = Math.floor(diffMs / 60000)
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
-  if (diffMins < 60) return `${diffMins} мин назад`
-  if (diffHours < 24) return `${diffHours} ч назад`
-  if (diffDays < 7) return `${diffDays} дн. назад`
+  if (diffMins < 60) return t('dashboard.timeMinutesAgo', { n: diffMins })
+  if (diffHours < 24) return t('dashboard.timeHoursAgo', { n: diffHours })
+  if (diffDays < 7) return t('dashboard.timeDaysAgo', { n: diffDays })
   return d.toLocaleDateString()
 }
 
@@ -316,12 +345,12 @@ onMounted(async () => {
       location: r.address,
       time: formatTimeAgo(r.createdAt),
       priority: r.priority,
-      priorityLabel: PRIORITY_LABELS[r.priority] ?? r.priority,
+      priorityLabel: labels.priority(r.priority) ?? r.priority,
       badgeClass: priorityBadgeClass(r.priority),
       status: r.status,
     }))
   } catch (e) {
-    requestsError.value = e.message || 'Не удалось загрузить заявки'
+    requestsError.value = e.message || t('dashboard.loadError')
   } finally {
     requestsLoading.value = false
   }
@@ -337,12 +366,12 @@ onMounted(async () => {
       const items = data.items ?? []
       volunteers.value = items.map((v) => ({
         id: v.id,
-        name: [v.firstName, v.lastName].filter(Boolean).join(' ') || 'Волонтёр',
+        name: [v.firstName, v.lastName].filter(Boolean).join(' ') || t('dashboard.volunteerFallback'),
         avatar: v.avatarUrl || '',
         skills: [],
-        location: DISTRICT_LABELS[v.district] || v.district || '—',
+        location: districtLabel(v.district) || v.district || t('common.emDash'),
         status: 'volunteer',
-        statusLabel: 'Волонтёр',
+        statusLabel: t('dashboard.volunteerFallback'),
         rating: v._count?.volunteerRequests ?? '—',
       }))
     } catch (_) {
@@ -370,27 +399,27 @@ const displayedRequests = computed(() => {
   return list
 })
 
-const activity = ref([
+const activity = computed(() => [
   {
     id: 1,
     type: 'success',
     icon: '✓',
-    text: 'Запрос <strong>#1247</strong> выполнен волонтёром Алексей К.',
-    time: '10 мин назад',
+    text: t('dashboard.activity1'),
+    time: t('dashboard.time10m'),
   },
   {
     id: 2,
     type: 'info',
     icon: 'i',
-    text: 'Новый запрос <strong>Медицинская помощь</strong> в районе Абая.',
-    time: '25 мин назад',
+    text: t('dashboard.activity2'),
+    time: t('dashboard.time25m'),
   },
   {
     id: 3,
     type: 'warning',
     icon: '!',
-    text: 'Запрос <strong>#1240</strong> ожидает назначения более 2 часов.',
-    time: '1 ч назад',
+    text: t('dashboard.activity3'),
+    time: t('dashboard.time1h'),
   },
 ])
 </script>

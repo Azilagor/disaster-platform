@@ -2,8 +2,8 @@
   <div>
     <div class="topbar">
       <div class="topbar-left">
-        <h1>Мои задачи</h1>
-        <p class="text-muted">Доступные заявки для отклика и заявки, на которые вы записаны</p>
+        <h1>{{ t('volunteerTasks.title') }}</h1>
+        <p class="text-muted">{{ t('volunteerTasks.subtitle') }}</p>
       </div>
     </div>
 
@@ -14,7 +14,7 @@
         :class="tab === 'available' ? 'active' : ''"
         @click="tab = 'available'"
       >
-        Доступные заявки
+        {{ t('volunteerTasks.tabAvailable') }}
       </button>
       <button
         type="button"
@@ -22,7 +22,7 @@
         :class="tab === 'assigned' ? 'active' : ''"
         @click="tab = 'assigned'"
       >
-        Мои заявки
+        {{ t('volunteerTasks.tabAssigned') }}
       </button>
     </div>
 
@@ -30,29 +30,29 @@
     <div v-show="tab === 'available'" class="section">
       <div class="toolbar">
         <select v-model="availableFilters.priority" class="form-control">
-          <option value="">Все приоритеты</option>
-          <option v-for="p in ALLOWED_PRIORITIES" :key="p" :value="p">{{ PRIORITY_LABELS[p] }}</option>
+          <option value="">{{ t('volunteerTasks.allPriorities') }}</option>
+          <option v-for="p in ALLOWED_PRIORITIES" :key="p" :value="p">{{ enumLabel.priority(p) }}</option>
         </select>
         <select v-model="availableFilters.problemType" class="form-control">
-          <option value="">Все типы</option>
-          <option v-for="t in ALLOWED_PROBLEM_TYPES" :key="t" :value="t">{{ PROBLEM_TYPE_LABELS[t] }}</option>
+          <option value="">{{ t('volunteerTasks.allTypes') }}</option>
+          <option v-for="pt in ALLOWED_PROBLEM_TYPES" :key="pt" :value="pt">{{ enumLabel.problemType(pt) }}</option>
         </select>
         <select v-model="availableFilters.district" class="form-control">
-          <option value="">Все районы</option>
-          <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] }}</option>
+          <option value="">{{ t('volunteerTasks.allDistricts') }}</option>
+          <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ enumLabel.district(d) }}</option>
         </select>
-        <button type="button" class="btn btn-primary" @click="loadAvailable">Обновить</button>
+        <button type="button" class="btn btn-primary" @click="loadAvailable">{{ t('common.refresh') }}</button>
       </div>
       <div class="request-cards">
         <div v-for="r in availableRequests" :key="r.id" class="request-card">
           <div class="request-card-header">
-            <span class="priority-badge" :class="(r.priority || '').toLowerCase()">{{ PRIORITY_LABELS[r.priority] || r.priority }}</span>
-            <span class="problem-type">{{ PROBLEM_TYPE_LABELS[r.problemType] || r.problemType }}</span>
+            <span class="priority-badge" :class="(r.priority || '').toLowerCase()">{{ enumLabel.priority(r.priority) || r.priority }}</span>
+            <span class="problem-type">{{ enumLabel.problemType(r.problemType) || r.problemType }}</span>
           </div>
           <h3>{{ r.title }}</h3>
           <p class="request-address">{{ r.address }}</p>
-          <p class="request-district">{{ DISTRICT_LABELS[r.district] || r.district }}</p>
-          <p v-if="r.peopleCount" class="request-meta">Людей: {{ r.peopleCount }}</p>
+          <p class="request-district">{{ enumLabel.district(r.district) || r.district }}</p>
+          <p v-if="r.peopleCount" class="request-meta">{{ t('volunteerTasks.peopleCount') }}: {{ r.peopleCount }}</p>
           <div class="request-card-actions">
             <button
               v-if="!isRequestAssignedToMe(r.id)"
@@ -61,34 +61,34 @@
               :disabled="respondingId === r.id"
               @click="respondToRequest(r.id)"
             >
-              {{ respondingId === r.id ? '...' : 'Откликнуться' }}
+              {{ respondingId === r.id ? t('volunteerTasks.respondingEllipsis') : t('volunteerTasks.respond') }}
             </button>
-            <span v-else class="already-responded-badge">Вы уже откликнулись</span>
+            <span v-else class="already-responded-badge">{{ t('volunteerTasks.alreadyResponded') }}</span>
           </div>
         </div>
       </div>
-      <p v-if="availableLoading" class="text-muted">Загрузка...</p>
-      <p v-else-if="tab === 'available' && !availableRequests.length" class="text-muted">Нет доступных заявок</p>
+      <p v-if="availableLoading" class="text-muted">{{ t('common.loadingEllipsis') }}</p>
+      <p v-else-if="tab === 'available' && !availableRequests.length" class="text-muted">{{ t('volunteerTasks.emptyAvailable') }}</p>
     </div>
 
     <!-- Assigned (my) -->
     <div v-show="tab === 'assigned'" class="section">
       <div class="toolbar">
         <select v-model="assignedFilters.status" class="form-control">
-          <option value="">Все статусы</option>
-          <option v-for="s in ALLOWED_STATUSES" :key="s" :value="s">{{ REQUEST_STATUS_LABELS[s] }}</option>
+          <option value="">{{ t('volunteerTasks.allStatuses') }}</option>
+          <option v-for="s in ALLOWED_STATUSES" :key="s" :value="s">{{ enumLabel.requestStatus(s) }}</option>
         </select>
-        <button type="button" class="btn btn-primary" @click="loadAssigned">Обновить</button>
+        <button type="button" class="btn btn-primary" @click="loadAssigned">{{ t('common.refresh') }}</button>
       </div>
       <div class="request-cards">
         <div v-for="r in assignedRequests" :key="r.id" class="request-card">
           <div class="request-card-header">
-            <span class="priority-badge" :class="(r.priority || '').toLowerCase()">{{ PRIORITY_LABELS[r.priority] || r.priority }}</span>
-            <span class="status-badge">{{ REQUEST_STATUS_LABELS[r.status] || r.status }}</span>
+            <span class="priority-badge" :class="(r.priority || '').toLowerCase()">{{ enumLabel.priority(r.priority) || r.priority }}</span>
+            <span class="status-badge">{{ enumLabel.requestStatus(r.status) || r.status }}</span>
           </div>
           <h3>{{ r.title }}</h3>
           <p class="request-address">{{ r.address }}</p>
-          <p class="request-district">{{ DISTRICT_LABELS[r.district] || r.district }}</p>
+          <p class="request-district">{{ enumLabel.district(r.district) || r.district }}</p>
           <div class="request-card-actions">
             <button
               v-if="r.status !== 'DONE' && r.status !== 'CANCELLED'"
@@ -97,32 +97,32 @@
               :disabled="leavingId === r.id"
               @click="leaveRequest(r.id)"
             >
-              {{ leavingId === r.id ? '...' : 'Отказаться от заявки' }}
+              {{ leavingId === r.id ? t('volunteerTasks.leavingEllipsis') : t('volunteerTasks.leaveRequest') }}
             </button>
           </div>
         </div>
       </div>
-      <p v-if="assignedLoading" class="text-muted">Загрузка...</p>
-      <p v-else-if="tab === 'assigned' && !assignedRequests.length" class="text-muted">Вы пока не записаны ни на одну заявку</p>
+      <p v-if="assignedLoading" class="text-muted">{{ t('common.loadingEllipsis') }}</p>
+      <p v-else-if="tab === 'assigned' && !assignedRequests.length" class="text-muted">{{ t('volunteerTasks.emptyAssigned') }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getAvailableRequests, getRequestsAssigned, volunteerRespond, volunteerLeave } from '../api/requests.js'
 import { withLoading } from '../stores/loading.js'
 import {
   ALLOWED_PRIORITIES,
   ALLOWED_PROBLEM_TYPES,
   ALLOWED_DISTRICTS,
-  PRIORITY_LABELS,
-  PROBLEM_TYPE_LABELS,
-  DISTRICT_LABELS,
-  REQUEST_STATUS_LABELS,
+  ALLOWED_STATUSES,
 } from '../constants/requests.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
 
-const ALLOWED_STATUSES = ['NEW', 'IN_PROGRESS', 'DONE', 'CANCELLED']
+const { t } = useI18n()
+const enumLabel = useEnumLabel()
 
 const tab = ref('available')
 const availableRequests = ref([])
@@ -175,8 +175,8 @@ watch(
   () => { if (tab.value === 'assigned') loadAssigned() },
   { immediate: true }
 )
-watch(tab, (t) => {
-  if (t === 'available') {
+watch(tab, (tb) => {
+  if (tb === 'available') {
     loadAvailable()
     loadAssigned() // needed to know which available requests we already responded to
   } else loadAssigned()
@@ -193,7 +193,7 @@ async function respondToRequest(id) {
     loadAvailable()
     loadAssigned()
   } catch (e) {
-    alert(e.message || 'Не удалось откликнуться')
+    alert(e.message || t('volunteerTasks.respondError'))
   } finally {
     respondingId.value = null
   }
@@ -206,7 +206,7 @@ async function leaveRequest(id) {
     loadAssigned()
     loadAvailable()
   } catch (e) {
-    alert(e.message || 'Не удалось отказаться')
+    alert(e.message || t('volunteerTasks.leaveError'))
   } finally {
     leavingId.value = null
   }

@@ -1,27 +1,27 @@
 <template>
   <div>
-    <h1 class="page-title">Обзор</h1>
-    <div v-if="loading" class="card">Загрузка…</div>
+    <h1 class="page-title">{{ t('admin.dashboard.pageTitle') }}</h1>
+    <div v-if="loading" class="card">{{ t('admin.loading') }}</div>
     <template v-else-if="overview">
       <div class="widget-grid">
         <div class="widget">
-          <div class="widget-title">Пользователей</div>
+          <div class="widget-title">{{ t('admin.dashboard.usersWidget') }}</div>
           <div class="widget-value">{{ overview.users.total }}</div>
-          <div class="widget-title" style="margin-top: 4px;">Не подтверждено: {{ overview.users.unverified }}</div>
+          <div class="widget-title" style="margin-top: 4px;">{{ t('admin.dashboard.unverified') }}: {{ overview.users.unverified }}</div>
         </div>
         <div class="widget">
-          <div class="widget-title">Заявок</div>
+          <div class="widget-title">{{ t('admin.dashboard.requestsWidget') }}</div>
           <div class="widget-value">{{ overview.requests.total }}</div>
-          <div class="widget-title" style="margin-top: 4px;">Опубликовано: {{ overview.requests.published }}</div>
+          <div class="widget-title" style="margin-top: 4px;">{{ t('admin.dashboard.published') }}: {{ overview.requests.published }}</div>
         </div>
         <div class="widget">
-          <div class="widget-title">Инцидентов</div>
+          <div class="widget-title">{{ t('admin.dashboard.incidentsWidget') }}</div>
           <div class="widget-value">{{ overview.incidents.total }}</div>
-          <div class="widget-title" style="margin-top: 4px;">Активных: {{ overview.incidents.active }}</div>
+          <div class="widget-title" style="margin-top: 4px;">{{ t('admin.dashboard.activeIncidents') }}: {{ overview.incidents.active }}</div>
         </div>
       </div>
       <div class="card">
-        <h2 class="section-title">Пользователи по ролям</h2>
+        <h2 class="section-title">{{ t('admin.dashboard.usersByRole') }}</h2>
         <div class="stats-row">
           <span>USER: <strong>{{ overview.users.byRole.USER ?? 0 }}</strong></span>
           <span>VOLUNTEER: <strong>{{ overview.users.byRole.VOLUNTEER ?? 0 }}</strong></span>
@@ -30,7 +30,7 @@
         </div>
       </div>
       <div class="card">
-        <h2 class="section-title">Заявки по статусу</h2>
+        <h2 class="section-title">{{ t('admin.dashboard.requestsByStatus') }}</h2>
         <div class="stats-row">
           <span>NEW: <strong>{{ overview.requests.byStatus.NEW ?? 0 }}</strong></span>
           <span>IN_PROGRESS: <strong>{{ overview.requests.byStatus.IN_PROGRESS ?? 0 }}</strong></span>
@@ -39,13 +39,16 @@
         </div>
       </div>
     </template>
-    <div v-else class="card">Нет данных</div>
+    <div v-else class="card">{{ t('admin.dashboard.noData') }}</div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getOverview } from '../../api/admin.js'
+
+const { t } = useI18n()
 
 const overview = ref(null)
 const loading = ref(true)

@@ -2,13 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as authApi from '../api/auth.js'
 import { getUploadsFullUrl } from '../api/config.js'
-
-const ROLE_LABELS = {
-  user: 'Пользователь',
-  volunteer: 'Волонтёр',
-  coordinator: 'Координатор',
-  admin: 'Администратор',
-}
+import { i18n } from '../i18n.js'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token'))
@@ -27,12 +21,19 @@ export const useAuthStore = defineStore('auth', () => {
   const isAdmin = computed(() => (user.value?.role || '').toUpperCase() === 'ADMIN')
 
   const userName = computed(() => {
-    if (!user.value) return 'Пользователь'
+    const locale = i18n.global.locale.value
+    if (!user.value) return i18n.global.t('roles.guest', locale)
     const { firstName, lastName } = user.value
-    return [firstName, lastName].filter(Boolean).join(' ') || 'Пользователь'
+    return [firstName, lastName].filter(Boolean).join(' ') || i18n.global.t('roles.guest', locale)
   })
 
-  const userRole = computed(() => (user.value && ROLE_LABELS[user.value.role]) || 'Пользователь')
+  const userRole = computed(() => {
+    const locale = i18n.global.locale.value
+    if (!user.value) return i18n.global.t('roles.guest', locale)
+    const r = String(user.value.role || 'user').toLowerCase()
+    const key = `roles.${r}`
+    return i18n.global.te(key, locale) ? i18n.global.t(key, locale) : i18n.global.t('roles.guest', locale)
+  })
 
   const userAvatar = computed(() => {
     if (user.value?.avatarUrl) return getUploadsFullUrl(user.value.avatarUrl)

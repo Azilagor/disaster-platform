@@ -14,7 +14,7 @@
       <button
         type="button"
         class="mobile-menu-btn"
-        aria-label="Открыть меню"
+        :aria-label="$t('nav.openMenu')"
         :aria-expanded="sidebarOpen"
         @click="sidebarOpen = !sidebarOpen"
       >
@@ -28,7 +28,8 @@
     </header>
     <div v-if="sidebarOpen" class="sidebar-backdrop" aria-hidden="true" @click="sidebarOpen = false" />
     <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
-      <div class="sidebar-header">
+      <div class="sidebar-header sidebar-header-row">
+        <LanguageSwitcher />
         <router-link to="/" class="logo" @click="sidebarOpen = false">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
             <path
@@ -60,7 +61,7 @@
             <rect x="3" y="11" width="6" height="6" rx="1" />
             <rect x="11" y="11" width="6" height="6" rx="1" />
           </svg>
-          Дашборд
+          {{ $t('nav.dashboard') }}
         </router-link>
         <router-link to="/map" class="nav-item" :class="{ active: $route.path === '/map' }" @click="sidebarOpen = false">
           <svg
@@ -74,7 +75,7 @@
             <path d="M10 2C6.13 2 3 5.13 3 9c0 4.17 7 9 7 9s7-4.83 7-9c0-3.87-3.13-7-7-7z" />
             <circle cx="10" cy="9" r="2.5" />
           </svg>
-          Карта
+          {{ $t('nav.map') }}
         </router-link>
         <router-link
           v-if="canCreateRequest"
@@ -86,7 +87,7 @@
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M10 2v16M2 10h16" />
           </svg>
-          Создать запрос
+          {{ $t('nav.createRequest') }}
         </router-link>
         <router-link
           v-if="isUser"
@@ -99,7 +100,7 @@
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <path d="M14 2v6h6" />
           </svg>
-          Мои заявки
+          {{ $t('nav.myRequests') }}
         </router-link>
         <router-link
           v-if="isCoordinator"
@@ -112,7 +113,7 @@
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <path d="M14 2v6h6" />
           </svg>
-          Заявки
+          {{ $t('nav.requests') }}
         </router-link>
         <router-link
           v-if="isCoordinator"
@@ -125,7 +126,7 @@
             <path d="M17 19v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
             <circle cx="10" cy="5" r="4" />
           </svg>
-          Волонтёры
+          {{ $t('nav.volunteers') }}
         </router-link>
         <router-link
           v-if="isCoordinator"
@@ -139,7 +140,7 @@
             <path d="M12 9v4" />
             <path d="M12 17h.01" />
           </svg>
-          Инциденты
+          {{ $t('nav.incidents') }}
         </router-link>
         <router-link
           v-if="isVolunteer"
@@ -152,7 +153,7 @@
             <path d="M9 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
             <path d="M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2z" />
           </svg>
-          Мои задачи
+          {{ $t('nav.myTasks') }}
         </router-link>
         <router-link to="/profile" class="nav-item" :class="{ active: $route.path === '/profile' }" @click="sidebarOpen = false">
           <svg
@@ -166,7 +167,7 @@
             <circle cx="10" cy="7" r="4" />
             <path d="M3 20c0-4 3-7 7-7s7 3 7 7" />
           </svg>
-          Профиль
+          {{ $t('nav.profile') }}
         </router-link>
         <router-link
           v-if="authStore.isAdmin"
@@ -178,11 +179,11 @@
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 4h14M3 10h14M3 16h14" />
           </svg>
-          Админка
+          {{ $t('nav.admin') }}
         </router-link>
       </nav>
       <div class="sidebar-footer">
-        <a href="#" class="nav-item" @click.prevent="logout">Выйти</a>
+        <a href="#" class="nav-item" @click.prevent="logout">{{ $t('nav.logout') }}</a>
       </div>
     </aside>
 
@@ -196,6 +197,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth.js'
+import LanguageSwitcher from '../LanguageSwitcher.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -212,3 +214,12 @@ function logout() {
   router.push('/login')
 }
 </script>
+
+<style scoped>
+.sidebar-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+</style>

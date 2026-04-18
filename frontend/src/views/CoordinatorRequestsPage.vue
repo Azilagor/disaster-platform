@@ -2,8 +2,8 @@
   <div>
     <div class="topbar">
       <div class="topbar-left">
-        <h1>Заявки координатора</h1>
-        <p class="text-muted">Управление заявками: публикация, назначение, статусы</p>
+        <h1>{{ $t('coordinator.title') }}</h1>
+        <p class="text-muted">{{ $t('coordinator.subtitle') }}</p>
       </div>
     </div>
 
@@ -12,27 +12,27 @@
         <input
           v-model="filters.search"
           type="text"
-          placeholder="Поиск..."
+          :placeholder="$t('coordinator.searchPh')"
           class="form-control"
         />
       </div>
       <select v-model="filters.status" class="form-control">
-        <option value="">Все статусы</option>
-        <option v-for="s in ALLOWED_STATUSES" :key="s" :value="s">{{ REQUEST_STATUS_LABELS[s] }}</option>
+        <option value="">{{ $t('coordinator.allStatuses') }}</option>
+        <option v-for="s in ALLOWED_STATUSES" :key="s" :value="s">{{ requestStatusLabels[s] }}</option>
       </select>
       <select v-model="filters.priority" class="form-control">
-        <option value="">Все приоритеты</option>
-        <option v-for="p in ALLOWED_PRIORITIES" :key="p" :value="p">{{ PRIORITY_LABELS[p] }}</option>
+        <option value="">{{ $t('coordinator.allPriorities') }}</option>
+        <option v-for="p in ALLOWED_PRIORITIES" :key="p" :value="p">{{ priorityLabels[p] }}</option>
       </select>
       <select v-model="filters.problemType" class="form-control">
-        <option value="">Все типы</option>
-        <option v-for="t in ALLOWED_PROBLEM_TYPES" :key="t" :value="t">{{ PROBLEM_TYPE_LABELS[t] }}</option>
+        <option value="">{{ $t('coordinator.allTypes') }}</option>
+        <option v-for="pt in ALLOWED_PROBLEM_TYPES" :key="pt" :value="pt">{{ problemTypeLabels[pt] }}</option>
       </select>
       <select v-model="filters.district" class="form-control">
-        <option value="">Все районы</option>
-        <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] }}</option>
+        <option value="">{{ $t('coordinator.allDistricts') }}</option>
+        <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ districtLabels[d] }}</option>
       </select>
-      <button type="button" class="btn btn-primary" @click="loadRequests">Обновить</button>
+      <button type="button" class="btn btn-primary" @click="loadRequests">{{ $t('common.refresh') }}</button>
     </div>
 
     <div class="table-wrap">
@@ -40,57 +40,61 @@
         <thead>
           <tr>
             <th>ID</th>
-            <th>Заголовок</th>
-            <th>Тип</th>
-            <th>Приоритет</th>
-            <th>Район</th>
-            <th>Статус</th>
-            <th>Публикация</th>
-            <th>Действия</th>
+            <th>{{ $t('myRequests.thTitle') }}</th>
+            <th>{{ $t('myRequests.thType') }}</th>
+            <th>{{ $t('myRequests.thPriority') }}</th>
+            <th>{{ $t('myRequests.thDistrict') }}</th>
+            <th>{{ $t('myRequests.thStatus') }}</th>
+            <th>{{ $t('myRequests.thPublished') }}</th>
+            <th>{{ $t('coordinator.thActions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="r in requests" :key="r.id">
             <td>{{ r.id }}</td>
             <td>{{ r.title }}</td>
-            <td>{{ PROBLEM_TYPE_LABELS[r.problemType] || r.problemType }}</td>
-            <td>{{ PRIORITY_LABELS[r.priority] || r.priority }}</td>
-            <td>{{ DISTRICT_LABELS[r.district] || r.district }}</td>
+            <td>{{ problemTypeLabels[r.problemType] || r.problemType }}</td>
+            <td>{{ priorityLabels[r.priority] || r.priority }}</td>
+            <td>{{ districtLabels[r.district] || r.district }}</td>
             <td>
               <select
                 :value="r.status"
                 class="form-control form-control-sm"
                 @change="patchRequestStatus(r.id, $event.target.value)"
               >
-                <option :value="r.status">{{ REQUEST_STATUS_LABELS[r.status] }}</option>
+                <option :value="r.status">{{ requestStatusLabels[r.status] }}</option>
                 <option
                   v-for="next in (STATUS_TRANSITIONS[r.status] || [])"
                   :key="next"
                   :value="next"
                 >
-                  {{ REQUEST_STATUS_LABELS[next] }}
+                  {{ requestStatusLabels[next] }}
                 </option>
               </select>
             </td>
             <td>
-              <span v-if="r.isPublished" class="badge badge-success">Опубликована</span>
-              <span v-else class="badge badge-secondary">Не опубликована</span>
+              <span v-if="r.isPublished" class="badge badge-success">{{ $t('myRequests.published') }}</span>
+              <span v-else class="badge badge-secondary">{{ $t('myRequests.notPublished') }}</span>
             </td>
             <td class="actions-cell">
-              <button type="button" class="btn btn-sm btn-outline" @click="openEditModal(r)">Редактировать</button>
+              <button type="button" class="btn btn-sm btn-outline" @click="openEditModal(r)">{{ $t('coordinator.edit') }}</button>
               <template v-if="r.isPublished">
-                <button type="button" class="btn btn-sm btn-secondary" @click="unpublishRequest(r.id)">Снять</button>
+                <button type="button" class="btn btn-sm btn-secondary" @click="unpublishRequest(r.id)">{{
+                  $t('coordinator.unpublish')
+                }}</button>
               </template>
               <template v-else>
-                <button type="button" class="btn btn-sm btn-primary" @click="publishRequest(r.id)">Опубликовать</button>
+                <button type="button" class="btn btn-sm btn-primary" @click="publishRequest(r.id)">{{
+                  $t('coordinator.publish')
+                }}</button>
               </template>
-              <button type="button" class="btn btn-sm btn-outline" @click="openAssignModal(r)">Назначить</button>
+              <button type="button" class="btn btn-sm btn-outline" @click="openAssignModal(r)">{{ $t('coordinator.assign') }}</button>
             </td>
           </tr>
         </tbody>
       </table>
-      <p v-if="loading" class="text-muted">Загрузка...</p>
-      <p v-else-if="!requests.length" class="text-muted">Нет заявок</p>
+      <p v-if="loading" class="text-muted">{{ $t('dashboard.loadingShort') }}</p>
+      <p v-else-if="!requests.length" class="text-muted">{{ $t('coordinator.noRequests') }}</p>
     </div>
 
     <!-- Assign modal -->
@@ -98,8 +102,8 @@
       <div class="modal-overlay"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Назначить волонтёра — заявка #{{ assignModalRequest.id }}</h2>
-          <button type="button" class="modal-close" aria-label="Закрыть" @click="assignModalRequest = null">
+          <h2>{{ $t('coordinator.assignTitle', { id: assignModalRequest.id }) }}</h2>
+          <button type="button" class="modal-close" :aria-label="$t('common.close')" @click="assignModalRequest = null">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
@@ -109,7 +113,7 @@
               v-model="volunteerSearch"
               type="text"
               class="form-control"
-              placeholder="Поиск волонтёра..."
+              :placeholder="$t('coordinator.volunteerSearchPh')"
             />
           </div>
           <ul class="volunteer-list">
@@ -121,15 +125,15 @@
                 :disabled="assigningId === v.id"
                 @click="assignVolunteer(assignModalRequest.id, v.id)"
               >
-                Назначить
+                {{ $t('coordinator.assignBtn') }}
               </button>
             </li>
           </ul>
-          <p v-if="volunteersLoading" class="text-muted">Загрузка волонтёров...</p>
-          <p v-else-if="!volunteerList.length" class="text-muted">Нет волонтёров</p>
+          <p v-if="volunteersLoading" class="text-muted">{{ $t('coordinator.loadingVolunteers') }}</p>
+          <p v-else-if="!volunteerList.length" class="text-muted">{{ $t('coordinator.noVolunteers') }}</p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="assignModalRequest = null">Закрыть</button>
+          <button type="button" class="btn btn-secondary" @click="assignModalRequest = null">{{ $t('common.close') }}</button>
         </div>
       </div>
     </div>
@@ -139,8 +143,8 @@
       <div class="modal-overlay"></div>
       <div class="modal-content modal-content-wide">
         <div class="modal-header">
-          <h2>Редактировать заявку #{{ editModalRequest.id }}</h2>
-          <button type="button" class="modal-close" aria-label="Закрыть" @click="editModalRequest = null">
+          <h2>{{ $t('coordinator.editTitle', { id: editModalRequest.id }) }}</h2>
+          <button type="button" class="modal-close" :aria-label="$t('common.close')" @click="editModalRequest = null">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
@@ -148,64 +152,64 @@
           <div v-if="editError" class="auth-message auth-message-error">{{ editError }}</div>
           <form class="edit-request-form" @submit.prevent="submitEditRequest">
             <div class="form-group">
-              <label for="edit-title">Заголовок (5–200 символов)</label>
+              <label for="edit-title">{{ $t('coordinator.labelTitle') }}</label>
               <input id="edit-title" v-model="editForm.title" type="text" class="form-control" required minlength="5" maxlength="200" />
             </div>
             <div class="form-group">
-              <label for="edit-description">Описание (не менее 50 символов)</label>
+              <label for="edit-description">{{ $t('coordinator.labelDesc') }}</label>
               <textarea id="edit-description" v-model="editForm.description" class="form-control" rows="4" required minlength="50"></textarea>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="edit-priority">Приоритет</label>
+                <label for="edit-priority">{{ $t('createRequest.priorityLabel') }}</label>
                 <select id="edit-priority" v-model="editForm.priority" class="form-control">
-                  <option v-for="p in ALLOWED_PRIORITIES" :key="p" :value="p">{{ PRIORITY_LABELS[p] }}</option>
+                  <option v-for="p in ALLOWED_PRIORITIES" :key="p" :value="p">{{ priorityLabels[p] }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label for="edit-problemType">Тип помощи</label>
+                <label for="edit-problemType">{{ $t('map.helpType') }}</label>
                 <select id="edit-problemType" v-model="editForm.problemType" class="form-control">
-                  <option v-for="t in ALLOWED_PROBLEM_TYPES" :key="t" :value="t">{{ PROBLEM_TYPE_LABELS[t] }}</option>
+                  <option v-for="pt in ALLOWED_PROBLEM_TYPES" :key="pt" :value="pt">{{ problemTypeLabels[pt] }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label for="edit-peopleCount">Количество людей</label>
+                <label for="edit-peopleCount">{{ $t('createRequest.peopleLabel') }}</label>
                 <input id="edit-peopleCount" v-model.number="editForm.peopleCount" type="number" class="form-control" min="1" max="1000" />
               </div>
             </div>
             <div class="form-group">
-              <label for="edit-address">Адрес</label>
+              <label for="edit-address">{{ $t('createRequest.addressLabel') }}</label>
               <input id="edit-address" v-model="editForm.address" type="text" class="form-control" required />
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="edit-district">Район</label>
+                <label for="edit-district">{{ $t('createRequest.districtLabel') }}</label>
                 <select id="edit-district" v-model="editForm.district" class="form-control">
-                  <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] }}</option>
+                  <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ districtLabels[d] }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label for="edit-landmark">Ориентир</label>
+                <label for="edit-landmark">{{ $t('coordinator.landmark') }}</label>
                 <input id="edit-landmark" v-model="editForm.landmark" type="text" class="form-control" />
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="edit-contactName">Контактное лицо</label>
+                <label for="edit-contactName">{{ $t('coordinator.contactPerson') }}</label>
                 <input id="edit-contactName" v-model="editForm.contactName" type="text" class="form-control" />
               </div>
               <div class="form-group">
-                <label for="edit-contactPhone">Телефон</label>
+                <label for="edit-contactPhone">{{ $t('auth.phone') }}</label>
                 <input id="edit-contactPhone" v-model="editForm.contactPhone" type="tel" class="form-control" />
               </div>
             </div>
             <div class="form-group">
-              <label for="edit-additionalInfo">Доп. информация</label>
+              <label for="edit-additionalInfo">{{ $t('coordinator.additionalInfo') }}</label>
               <textarea id="edit-additionalInfo" v-model="editForm.additionalInfo" class="form-control" rows="2"></textarea>
             </div>
             <div class="form-actions">
-              <button type="button" class="btn btn-secondary" @click="editModalRequest = null">Отмена</button>
-              <button type="submit" class="btn btn-primary" :disabled="editSaving">Сохранить</button>
+              <button type="button" class="btn btn-secondary" @click="editModalRequest = null">{{ $t('common.cancel') }}</button>
+              <button type="submit" class="btn btn-primary" :disabled="editSaving">{{ $t('coordinator.save') }}</button>
             </div>
           </form>
         </div>
@@ -215,7 +219,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   getRequests,
   getRequest,
@@ -228,17 +233,28 @@ import {
 import { getVolunteers } from '../api/users.js'
 import { withLoading } from '../stores/loading.js'
 import {
-  REQUEST_STATUS_LABELS,
-  PRIORITY_LABELS,
-  PROBLEM_TYPE_LABELS,
-  DISTRICT_LABELS,
   STATUS_TRANSITIONS,
   ALLOWED_PROBLEM_TYPES,
   ALLOWED_PRIORITIES,
   ALLOWED_DISTRICTS,
+  ALLOWED_STATUSES,
 } from '../constants/requests.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
 
-const ALLOWED_STATUSES = ['NEW', 'IN_PROGRESS', 'DONE', 'CANCELLED']
+const { t } = useI18n()
+const lb = useEnumLabel()
+const priorityLabels = computed(() =>
+  Object.fromEntries(ALLOWED_PRIORITIES.map((c) => [c, lb.priority(c)]))
+)
+const districtLabels = computed(() =>
+  Object.fromEntries(ALLOWED_DISTRICTS.map((c) => [c, lb.district(c)]))
+)
+const problemTypeLabels = computed(() =>
+  Object.fromEntries(ALLOWED_PROBLEM_TYPES.map((c) => [c, lb.problemType(c)]))
+)
+const requestStatusLabels = computed(() =>
+  Object.fromEntries(ALLOWED_STATUSES.map((c) => [c, lb.requestStatus(c)]))
+)
 
 const loading = ref(false)
 const requests = ref([])
@@ -283,7 +299,7 @@ async function publishRequest(id) {
     await withLoading(() => apiPublishRequest(id))
     loadRequests()
   } catch (e) {
-    alert(e.message || 'Ошибка публикации')
+    alert(e.message || t('coordinator.publishError'))
   }
 }
 
@@ -292,7 +308,7 @@ async function unpublishRequest(id) {
     await withLoading(() => apiUnpublishRequest(id))
     loadRequests()
   } catch (e) {
-    alert(e.message || 'Ошибка снятия')
+    alert(e.message || t('coordinator.unpublishError'))
   }
 }
 
@@ -301,7 +317,7 @@ async function patchRequestStatus(id, status) {
     await withLoading(() => apiPatchRequestStatus(id, status))
     loadRequests()
   } catch (e) {
-    alert(e.message || 'Ошибка смены статуса')
+    alert(e.message || t('coordinator.statusError'))
   }
 }
 
@@ -382,7 +398,7 @@ async function openEditModal(request) {
     editForm.contactPhone = full.contactPhone ?? ''
     editForm.additionalInfo = full.additionalInfo ?? ''
   } catch (e) {
-    editError.value = e.message || 'Не удалось загрузить заявку'
+    editError.value = e.message || t('coordinator.loadEditError')
   }
 }
 
@@ -409,7 +425,7 @@ async function submitEditRequest() {
     editModalRequest.value = null
     loadRequests()
   } catch (e) {
-    editError.value = e.message || 'Не удалось сохранить заявку'
+    editError.value = e.message || t('coordinator.saveEditError')
   } finally {
     editSaving.value = false
   }
@@ -422,7 +438,7 @@ async function assignVolunteer(requestId, volunteerId) {
     assignModalRequest.value = null
     loadRequests()
   } catch (e) {
-    alert(e.message || 'Ошибка назначения')
+    alert(e.message || t('coordinator.assignError'))
   } finally {
     assigningId.value = null
   }

@@ -1,28 +1,35 @@
 <template>
   <div>
-    <h1 class="page-title">Заявки</h1>
+    <h1 class="page-title">{{ t('admin.requestsTitle') }}</h1>
     <div class="card">
       <div class="filters-row">
-        <input v-model="filters.search" type="text" class="form-control" placeholder="Поиск" style="max-width: 220px;" @input="debounceLoad" />
+        <input
+          v-model="filters.search"
+          type="text"
+          class="form-control"
+          :placeholder="t('common.search')"
+          style="max-width: 220px;"
+          @input="debounceLoad"
+        />
         <select v-model="filters.status" class="form-control" style="max-width: 140px;" @change="load">
-          <option value="">Все статусы</option>
+          <option value="">{{ t('admin.allStatuses') }}</option>
           <option value="NEW">NEW</option>
           <option value="IN_PROGRESS">IN_PROGRESS</option>
           <option value="DONE">DONE</option>
           <option value="CANCELLED">CANCELLED</option>
         </select>
-        <button type="button" class="btn btn-secondary" @click="load">Обновить</button>
+        <button type="button" class="btn btn-secondary" @click="load">{{ t('common.refresh') }}</button>
       </div>
-      <div v-if="loading" class="table-wrap">Загрузка…</div>
+      <div v-if="loading" class="table-wrap">{{ t('admin.loading') }}</div>
       <div v-else class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Заголовок</th>
-              <th>Статус</th>
-              <th>Приоритет</th>
-              <th>Опубликовано</th>
+              <th>{{ t('admin.thId') }}</th>
+              <th>{{ t('admin.thTitle') }}</th>
+              <th>{{ t('admin.thStatus') }}</th>
+              <th>{{ t('admin.thPriority') }}</th>
+              <th>{{ t('admin.thPublished') }}</th>
               <th></th>
             </tr>
           </thead>
@@ -30,15 +37,15 @@
             <tr v-for="r in items" :key="r.id">
               <td>{{ r.id }}</td>
               <td>{{ r.title }}</td>
-              <td><span class="badge">{{ r.status }}</span></td>
-              <td>{{ r.priority }}</td>
-              <td>{{ r.isPublished ? 'Да' : 'Нет' }}</td>
-              <td><router-link :to="`/admin/requests/${r.id}`" class="btn btn-sm btn-secondary">Открыть</router-link></td>
+              <td><span class="badge">{{ enumLabel.requestStatus(r.status) || r.status }}</span></td>
+              <td>{{ enumLabel.priority(r.priority) || r.priority }}</td>
+              <td>{{ r.isPublished ? t('common.yes') : t('common.no') }}</td>
+              <td><router-link :to="`/admin/requests/${r.id}`" class="btn btn-sm btn-secondary">{{ t('admin.openDetail') }}</router-link></td>
             </tr>
           </tbody>
         </table>
-        <p v-if="!items.length && !loading" class="empty-msg">Нет заявок</p>
-        <p class="total-msg">Всего: {{ total }}</p>
+        <p v-if="!items.length && !loading" class="empty-msg">{{ t('admin.noRequests') }}</p>
+        <p class="total-msg">{{ t('admin.totalOf', { total }) }}</p>
       </div>
     </div>
   </div>
@@ -46,7 +53,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getRequests } from '../../api/requests.js'
+import { useEnumLabel } from '../../composables/useEnumLabel.js'
+
+const { t } = useI18n()
+const enumLabel = useEnumLabel()
 
 const items = ref([])
 const total = ref(0)

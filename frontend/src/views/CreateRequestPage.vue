@@ -6,32 +6,28 @@
         <div class="progress-steps">
           <div class="step" :class="{ active: currentStep >= 1 }">
             <div class="step-number">1</div>
-            <span class="step-label">Тип помощи</span>
+            <span class="step-label">{{ $t('createRequest.step1') }}</span>
           </div>
           <div class="step-line"></div>
           <div class="step" :class="{ active: currentStep >= 2 }">
             <div class="step-number">2</div>
-            <span class="step-label">Детали</span>
+            <span class="step-label">{{ $t('createRequest.step2') }}</span>
           </div>
           <div class="step-line"></div>
           <div class="step" :class="{ active: currentStep >= 3 }">
             <div class="step-number">3</div>
-            <span class="step-label">Контакты</span>
+            <span class="step-label">{{ $t('createRequest.step3') }}</span>
           </div>
         </div>
 
         <div class="form-content">
           <div class="form-header-section">
-            <h1>Создать запрос о помощи</h1>
-            <p>
-              Опишите ситуацию — волонтёры и координаторы увидят запрос на карте и смогут
-              откликнуться.
-            </p>
+            <h1>{{ $t('createRequest.pageTitle') }}</h1>
+            <p>{{ $t('createRequest.pageIntro') }}</p>
           </div>
 
-          <!-- Step 1: Problem type -->
           <div class="form-step" :class="{ active: currentStep === 1 }">
-            <h2 class="step-title">Выберите тип помощи</h2>
+            <h2 class="step-title">{{ $t('createRequest.chooseType') }}</h2>
             <div class="problem-types">
               <label v-for="type in problemTypes" :key="type.id" class="problem-type-card">
                 <input v-model="form.problemType" type="radio" :value="type.id" />
@@ -56,15 +52,14 @@
                 </div>
               </label>
             </div>
-            <div v-if="formErrors.problemType" class="invalid-feedback d-block mb-2">{{ formErrors.problemType }}</div>
+            <div v-if="formErrors.problemType" class="invalid-feedback d-block mb-2">{{ fieldError('problemType') }}</div>
             <div class="form-actions">
-              <button type="button" class="btn btn-primary" @click="currentStep = 2">Далее</button>
+              <button type="button" class="btn btn-primary" @click="currentStep = 2">{{ $t('createRequest.next') }}</button>
             </div>
           </div>
 
-          <!-- Step 2: Details -->
           <div class="form-step" :class="{ active: currentStep === 2 }">
-            <h2 class="step-title">Опишите ситуацию</h2>
+            <h2 class="step-title">{{ $t('createRequest.describeStep') }}</h2>
             <div class="info-box">
               <svg
                 width="20"
@@ -78,75 +73,67 @@
                 <path d="M10 6v4M10 14h.01" />
               </svg>
               <div>
-                <strong>Укажите адрес и что именно требуется</strong>
-                <p>Чем точнее описание, тем быстрее найдётся помощь.</p>
+                <strong>{{ $t('createRequest.infoTitle') }}</strong>
+                <p>{{ $t('createRequest.infoText') }}</p>
               </div>
             </div>
             <div class="form-grid">
               <div class="form-group full-width">
-                <label for="title">Заголовок запроса</label>
+                <label for="title">{{ $t('createRequest.titleLabel') }}</label>
                 <input
                   id="title"
                   v-model="form.title"
                   type="text"
                   class="form-control"
                   :class="{ 'is-invalid': formErrors.title }"
-                  placeholder="Кратко, о чём помощь (от 5 до 200 символов)"
+                  :placeholder="$t('createRequest.titlePlaceholder')"
                 />
-                <div v-if="formErrors.title" class="invalid-feedback">{{ formErrors.title }}</div>
+                <div v-if="formErrors.title" class="invalid-feedback">{{ fieldError('title') }}</div>
               </div>
               <div class="form-group full-width">
-                <label for="address">Адрес</label>
+                <label for="address">{{ $t('createRequest.addressLabel') }}</label>
                 <input
                   id="address"
                   v-model="form.address"
                   type="text"
                   class="form-control"
                   :class="{ 'is-invalid': formErrors.address }"
-                  placeholder="г. Алматы, ул. Абая, 150"
+                  :placeholder="$t('createRequest.addressPlaceholder')"
                 />
-                <div v-if="formErrors.address" class="invalid-feedback">{{ formErrors.address }}</div>
+                <div v-if="formErrors.address" class="invalid-feedback">{{ fieldError('address') }}</div>
               </div>
               <div class="form-group">
-                <label for="district">Район</label>
+                <label for="district">{{ $t('createRequest.districtLabel') }}</label>
                 <select id="district" v-model="form.district" class="form-control" :class="{ 'is-invalid': formErrors.district }">
-                  <option value="">Выберите район</option>
-                  <option
-                    v-for="code in districtOptions"
-                    :key="code"
-                    :value="code"
-                  >
+                  <option value="">{{ $t('createRequest.selectDistrict') }}</option>
+                  <option v-for="code in districtOptions" :key="code" :value="code">
                     {{ districtLabels[code] }}
                   </option>
                 </select>
-                <div v-if="formErrors.district" class="invalid-feedback">{{ formErrors.district }}</div>
+                <div v-if="formErrors.district" class="invalid-feedback">{{ fieldError('district') }}</div>
               </div>
               <div class="form-group">
-                <label for="priority">Приоритет</label>
+                <label for="priority">{{ $t('createRequest.priorityLabel') }}</label>
                 <select id="priority" v-model="form.priority" class="form-control">
-                  <option
-                    v-for="code in priorityOptions"
-                    :key="code"
-                    :value="code"
-                  >
+                  <option v-for="code in priorityOptions" :key="code" :value="code">
                     {{ priorityLabels[code] }}
                   </option>
                 </select>
               </div>
               <div class="form-group full-width">
-                <label for="description">Описание</label>
+                <label for="description">{{ $t('createRequest.descriptionLabel') }}</label>
                 <textarea
                   id="description"
                   v-model="form.description"
                   class="form-control"
                   :class="{ 'is-invalid': formErrors.description }"
-                  placeholder="Опишите, что нужно: количество людей, особые условия, срочность... (минимум 50 символов)"
+                  :placeholder="$t('createRequest.descriptionPlaceholder')"
                   rows="4"
                 ></textarea>
-                <div v-if="formErrors.description" class="invalid-feedback">{{ formErrors.description }}</div>
+                <div v-if="formErrors.description" class="invalid-feedback">{{ fieldError('description') }}</div>
               </div>
               <div class="form-group">
-                <label for="people">Количество людей</label>
+                <label for="people">{{ $t('createRequest.peopleLabel') }}</label>
                 <input
                   id="people"
                   v-model.number="form.peopleCount"
@@ -159,28 +146,27 @@
             </div>
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" @click="currentStep = 1">
-                Назад
+                {{ $t('createRequest.back') }}
               </button>
-              <button type="button" class="btn btn-primary" @click="currentStep = 3">Далее</button>
+              <button type="button" class="btn btn-primary" @click="currentStep = 3">{{ $t('createRequest.next') }}</button>
             </div>
           </div>
 
-          <!-- Step 3: Contacts -->
           <div class="form-step" :class="{ active: currentStep === 3 }">
-            <h2 class="step-title">Контактные данные</h2>
+            <h2 class="step-title">{{ $t('createRequest.contactsTitle') }}</h2>
             <div class="form-grid">
               <div class="form-group">
-                <label for="contactName">Ваше имя</label>
+                <label for="contactName">{{ $t('createRequest.yourName') }}</label>
                 <input
                   id="contactName"
                   v-model="form.contactName"
                   type="text"
                   class="form-control"
-                  placeholder="Иван Иванов"
+                  :placeholder="$t('createRequest.namePlaceholder')"
                 />
               </div>
               <div class="form-group">
-                <label for="contactPhone">Телефон</label>
+                <label for="contactPhone">{{ $t('auth.phone') }}</label>
                 <input
                   id="contactPhone"
                   v-model="form.contactPhone"
@@ -190,26 +176,24 @@
                 />
               </div>
               <div class="form-group full-width">
-                <label for="contactComment" class="form-hint"
-                  >Дополнительно (когда удобно звонить, комментарий)</label
-                >
+                <label for="contactComment" class="form-hint">{{ $t('createRequest.commentLabel') }}</label>
                 <textarea
                   id="contactComment"
                   v-model="form.contactComment"
                   class="form-control"
                   rows="2"
-                  placeholder="Необязательно"
+                  :placeholder="$t('createRequest.optionalPlaceholder')"
                 ></textarea>
               </div>
             </div>
             <label class="checkbox-label large">
               <input v-model="form.agreeData" type="checkbox" required />
-              <span>Я согласен на обработку персональных данных для координации помощи</span>
+              <span>{{ $t('createRequest.agreeData') }}</span>
             </label>
             <div v-if="submitError" class="auth-message auth-message-error">{{ submitError }}</div>
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" @click="currentStep = 2">
-                Назад
+                {{ $t('createRequest.back') }}
               </button>
               <button
                 type="submit"
@@ -217,7 +201,7 @@
                 :disabled="submitting"
                 @click.prevent="submitRequest"
               >
-                Отправить запрос
+                {{ $t('createRequest.submit') }}
               </button>
             </div>
           </div>
@@ -229,18 +213,14 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import AppHeader from '../components/layout/AppHeader.vue'
 import AppFooter from '../components/layout/AppFooter.vue'
 import { createRequest } from '../api/requests.js'
 import { withLoading } from '../stores/loading.js'
-import {
-  ALLOWED_PRIORITIES,
-  ALLOWED_DISTRICTS,
-  PRIORITY_LABELS,
-  DISTRICT_LABELS,
-} from '../constants/requests.js'
+import { ALLOWED_PRIORITIES, ALLOWED_DISTRICTS, ALLOWED_PROBLEM_TYPES } from '../constants/requests.js'
 import {
   validateProblemType,
   validateRequestTitle,
@@ -248,8 +228,13 @@ import {
   validateDistrict,
   validatePriority,
 } from '../utils/validation.js'
+import { translateValidationError } from '../utils/translateValidationError.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
 
 const router = useRouter()
+const { t } = useI18n()
+const labels = useEnumLabel()
+
 const currentStep = ref(1)
 const submitting = ref(false)
 const submitError = ref('')
@@ -275,29 +260,52 @@ const formErrors = reactive({
   description: '',
 })
 
-const problemTypes = [
-  { id: 'MEDICAL', title: 'Медицинская помощь', description: 'Травмы, лекарства, медикаменты, врачи', iconClass: 'medical' },
-  { id: 'FOOD', title: 'Питание и вода', description: 'Продукты, питьевая вода, детское питание', iconClass: 'food' },
-  { id: 'EVACUATION', title: 'Эвакуация', description: 'Транспорт, выезд из зоны ЧС', iconClass: 'evacuation' },
-  { id: 'SHELTER', title: 'Жильё и ночлег', description: 'Временное размещение, одежда', iconClass: 'shelter' },
-  { id: 'REPAIR', title: 'Ремонт и техника', description: 'Электрика, отопление, связь', iconClass: 'repair' },
-  { id: 'PSYCHOLOGICAL', title: 'Психологическая помощь', description: 'Поддержка, консультация', iconClass: 'psychological' },
-]
+const ICON_BY_TYPE = {
+  MEDICAL: 'medical',
+  FOOD: 'food',
+  EVACUATION: 'evacuation',
+  SHELTER: 'shelter',
+  REPAIR: 'repair',
+  PSYCHOLOGICAL: 'psychological',
+}
+
+const problemTypes = computed(() =>
+  ALLOWED_PROBLEM_TYPES.map((id) => ({
+    id,
+    iconClass: ICON_BY_TYPE[id] || 'medical',
+    title: t(`createRequest.problemTitle.${id}`),
+    description: t(`createRequest.problemDesc.${id}`),
+  }))
+)
 
 const priorityOptions = ALLOWED_PRIORITIES
-const priorityLabels = PRIORITY_LABELS
 const districtOptions = ALLOWED_DISTRICTS
-const districtLabels = DISTRICT_LABELS
+
+const priorityLabels = computed(() =>
+  Object.fromEntries(ALLOWED_PRIORITIES.map((code) => [code, labels.priority(code)]))
+)
+const districtLabels = computed(() =>
+  Object.fromEntries(ALLOWED_DISTRICTS.map((code) => [code, labels.district(code)]))
+)
+
+function fieldError(key) {
+  return translateValidationError(formErrors[key], t)
+}
 
 function validateForm() {
   formErrors.problemType = validateProblemType(form.problemType) || ''
   formErrors.title = validateRequestTitle(form.title) || ''
   formErrors.description = validateRequestDescription(form.description) || ''
   formErrors.district = validateDistrict(form.district) || ''
-  formErrors.address = !(form.address?.trim()) ? 'Укажите адрес' : ''
+  formErrors.address = !(form.address?.trim()) ? 'validation.addressRequired' : ''
   const pr = validatePriority(form.priority)
-  const valid = !formErrors.problemType && !formErrors.title && !formErrors.description &&
-    !formErrors.district && !formErrors.address && !pr
+  const valid =
+    !formErrors.problemType &&
+    !formErrors.title &&
+    !formErrors.description &&
+    !formErrors.district &&
+    !formErrors.address &&
+    !pr
   if (!valid && formErrors.problemType) currentStep.value = 1
   else if (!valid) currentStep.value = 2
   return valid
@@ -329,7 +337,7 @@ async function submitRequest() {
       router.push('/map')
     }
   } catch (error) {
-    submitError.value = error.message || 'Не удалось отправить запрос. Попробуйте позже.'
+    submitError.value = error.message || t('createRequest.submitError')
   } finally {
     submitting.value = false
   }

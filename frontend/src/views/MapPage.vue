@@ -5,36 +5,43 @@
         <button
           type="button"
           class="panel-toggle"
-          :aria-label="panelOpen ? 'Скрыть фильтры' : 'Показать фильтры'"
+          :aria-label="panelOpen ? $t('map.hideFilters') : $t('map.showFilters')"
           @click="panelOpen = !panelOpen"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path v-if="panelOpen" d="M15 18l-6-6 6-6" />
             <path v-else d="M9 18l6-6-6-6" />
           </svg>
-          <span class="panel-toggle-label">{{ panelOpen ? 'Скрыть фильтры' : 'Фильтры' }}</span>
+          <span class="panel-toggle-label">{{ panelOpen ? $t('map.hideFilters') : $t('map.filters') }}</span>
         </button>
         <div class="search-box">
-          <input v-model="searchQuery" type="text" placeholder="Поиск по адресу или описанию..." class="form-control" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="$t('map.searchPlaceholder')"
+            class="form-control"
+          />
         </div>
-        <router-link v-if="canCreateRequest" to="/create-request" class="btn btn-primary">Создать запрос</router-link>
+        <router-link v-if="canCreateRequest" to="/create-request" class="btn btn-primary">{{
+          $t('map.createRequest')
+        }}</router-link>
       </div>
       <div class="map-area">
         <div ref="mapRef" class="map-wrapper"></div>
         <div class="map-legend">
-          <h4>Приоритет</h4>
+          <h4>{{ $t('map.priorityLegend') }}</h4>
           <div class="legend-items">
             <div class="legend-item">
-              <span class="legend-marker critical-marker"></span><span>Критический</span>
+              <span class="legend-marker critical-marker"></span><span>{{ $t('labels.priority.CRITICAL') }}</span>
             </div>
             <div class="legend-item">
-              <span class="legend-marker high-marker"></span><span>Высокий</span>
+              <span class="legend-marker high-marker"></span><span>{{ $t('labels.priority.HIGH') }}</span>
             </div>
             <div class="legend-item">
-              <span class="legend-marker medium-marker"></span><span>Средний</span>
+              <span class="legend-marker medium-marker"></span><span>{{ $t('labels.priority.MEDIUM') }}</span>
             </div>
             <div class="legend-item">
-              <span class="legend-marker low-marker"></span><span>Низкий</span>
+              <span class="legend-marker low-marker"></span><span>{{ $t('labels.priority.LOW') }}</span>
             </div>
           </div>
         </div>
@@ -44,43 +51,43 @@
     <aside class="filters-drawer" :class="{ 'filters-drawer--open': panelOpen }" aria-hidden="!panelOpen">
       <div class="filters-drawer-inner">
         <div class="filters-header">
-          <h2>Фильтры</h2>
-          <button type="button" class="filters-close" aria-label="Закрыть" @click="panelOpen = false">
+          <h2>{{ $t('map.filters') }}</h2>
+          <button type="button" class="filters-close" :aria-label="$t('common.close')" @click="panelOpen = false">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
       <div class="filter-group">
-        <span class="filter-label">Показать</span>
+        <span class="filter-label">{{ $t('map.show') }}</span>
         <select v-model="filters.scope" class="form-control">
-          <option value="all">Все заявки</option>
-          <option value="mine">Мои заявки</option>
+          <option value="all">{{ $t('map.allRequests') }}</option>
+          <option value="mine">{{ $t('map.myRequests') }}</option>
         </select>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Район</span>
+        <span class="filter-label">{{ $t('createRequest.districtLabel') }}</span>
         <select v-model="filters.district" class="form-control">
-          <option value="">Все районы</option>
-          <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] }}</option>
+          <option value="">{{ $t('map.allDistricts') }}</option>
+          <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ districtLabels[d] }}</option>
         </select>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Приоритет</span>
+        <span class="filter-label">{{ $t('createRequest.priorityLabel') }}</span>
         <select v-model="filters.priority" class="form-control">
-          <option value="">Все приоритеты</option>
-          <option v-for="p in ALLOWED_PRIORITIES" :key="p" :value="p">{{ PRIORITY_LABELS[p] }}</option>
+          <option value="">{{ $t('map.allPriorities') }}</option>
+          <option v-for="p in ALLOWED_PRIORITIES" :key="p" :value="p">{{ priorityLabels[p] }}</option>
         </select>
       </div>
       <div class="filter-group">
-        <span class="filter-label">Тип помощи</span>
+        <span class="filter-label">{{ $t('map.helpType') }}</span>
         <select v-model="filters.problemType" class="form-control">
-          <option value="">Все типы</option>
-          <option v-for="t in ALLOWED_PROBLEM_TYPES" :key="t" :value="t">{{ PROBLEM_TYPE_LABELS[t] }}</option>
+          <option value="">{{ $t('map.allTypes') }}</option>
+          <option v-for="pt in ALLOWED_PROBLEM_TYPES" :key="pt" :value="pt">{{ problemTypeLabels[pt] }}</option>
         </select>
       </div>
       <div class="filter-stats">
         <div class="filter-stat-item">
           <strong>{{ requests.length }}</strong>
-          <span>запросов на карте</span>
+          <span>{{ $t('map.onMapCount') }}</span>
         </div>
       </div>
       <div class="request-list-sidebar">
@@ -104,8 +111,8 @@
       <div class="modal-overlay"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Запрос #{{ selectedRequest.id }}</h2>
-          <button type="button" class="modal-close" aria-label="Закрыть" @click="selectedRequest = null">
+          <h2>{{ $t('map.requestModalTitle', { id: selectedRequest.id }) }}</h2>
+          <button type="button" class="modal-close" :aria-label="$t('common.close')" @click="selectedRequest = null">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 2L2 18M2 2l16 16" />
             </svg>
@@ -114,26 +121,26 @@
         <div class="modal-body">
           <div class="request-detail-header">
             <span class="priority-badge" :class="(selectedRequest.priority || '').toLowerCase()">
-              {{ PRIORITY_LABELS[selectedRequest.priority] || selectedRequest.priority }}
+              {{ priorityLabels[selectedRequest.priority] || selectedRequest.priority }}
             </span>
-            <span class="problem-type">{{ PROBLEM_TYPE_LABELS[selectedRequest.problemType] || selectedRequest.problemType }}</span>
+            <span class="problem-type">{{ problemTypeLabels[selectedRequest.problemType] || selectedRequest.problemType }}</span>
           </div>
           <h3>{{ selectedRequest.title }}</h3>
           <div class="detail-section">
-            <h4>Адрес</h4>
+            <h4>{{ $t('map.address') }}</h4>
             <p>{{ selectedRequest.address }}</p>
           </div>
-          <div class="detail-section" v-if="selectedRequest.peopleCount">
-            <h4>Количество людей</h4>
+          <div v-if="selectedRequest.peopleCount" class="detail-section">
+            <h4>{{ $t('map.peopleCount') }}</h4>
             <p>{{ selectedRequest.peopleCount }}</p>
           </div>
-          <div class="detail-section" v-if="selectedRequest.contactPhone">
-            <h4>Контакт</h4>
+          <div v-if="selectedRequest.contactPhone" class="detail-section">
+            <h4>{{ $t('map.contact') }}</h4>
             <p>{{ selectedRequest.contactPhone }}</p>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="selectedRequest = null">Закрыть</button>
+          <button type="button" class="btn btn-secondary" @click="selectedRequest = null">{{ $t('common.close') }}</button>
           <button
             v-if="isVolunteer"
             type="button"
@@ -141,7 +148,7 @@
             :disabled="respondingId === selectedRequest.id"
             @click="respondFromMap(selectedRequest.id)"
           >
-            {{ respondingId === selectedRequest.id ? '...' : 'Откликнуться' }}
+            {{ respondingId === selectedRequest.id ? $t('map.respondLoading') : $t('map.respond') }}
           </button>
         </div>
       </div>
@@ -152,6 +159,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth.js'
 import { getRequestsMap, getMyRequests, volunteerRespond } from '../api/requests.js'
 import { withLoading } from '../stores/loading.js'
@@ -160,14 +168,24 @@ import {
   ALLOWED_PRIORITIES,
   ALLOWED_PROBLEM_TYPES,
   DISTRICT_CENTROIDS,
-  DISTRICT_LABELS,
-  PRIORITY_LABELS,
-  PROBLEM_TYPE_LABELS,
 } from '../constants/requests.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
 import 'leaflet/dist/leaflet.css'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const { t } = useI18n()
+const lb = useEnumLabel()
+
+const priorityLabels = computed(() =>
+  Object.fromEntries(ALLOWED_PRIORITIES.map((c) => [c, lb.priority(c)]))
+)
+const districtLabels = computed(() =>
+  Object.fromEntries(ALLOWED_DISTRICTS.map((c) => [c, lb.district(c)]))
+)
+const problemTypeLabels = computed(() =>
+  Object.fromEntries(ALLOWED_PROBLEM_TYPES.map((c) => [c, lb.problemType(c)]))
+)
 const role = computed(() => (authStore.user?.role || '').toUpperCase())
 const isVolunteer = computed(() => role.value === 'VOLUNTEER')
 const canCreateRequest = computed(() => role.value === 'USER' || role.value === 'COORDINATOR' || role.value === 'ADMIN')
@@ -357,7 +375,7 @@ function updateMarkers() {
     })
     const marker = L.marker([lat, lon], { icon })
     marker.request = r
-    marker.bindTooltip(escapeHtml(r.title || 'Запрос'), {
+    marker.bindTooltip(escapeHtml(r.title || t('map.unnamedRequest')), {
       direction: 'top',
       permanent: false,
       offset: [0, -36],
@@ -368,7 +386,7 @@ function updateMarkers() {
     } else {
       const popupContent =
         '<div class="map-marker-popup">' +
-        '<strong>' + escapeHtml(r.title || 'Запрос') + '</strong>' +
+        '<strong>' + escapeHtml(r.title || t('map.unnamedRequest')) + '</strong>' +
         (r.address ? '<br><span class="map-marker-popup-address">' + escapeHtml(r.address) + '</span>' : '') +
         '</div>'
       marker.bindPopup(popupContent, { className: 'map-marker-popup-container', maxWidth: 280 })
@@ -417,7 +435,7 @@ async function respondFromMap(id) {
     selectedRequest.value = null
     loadMapRequests()
   } catch (e) {
-    alert(e.message || 'Не удалось откликнуться')
+    alert(e.message || t('map.respondError'))
   } finally {
     respondingId.value = null
   }

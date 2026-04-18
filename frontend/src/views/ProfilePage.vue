@@ -9,7 +9,7 @@
             :class="{ 'avatar-uploading': avatarUploading }"
             role="button"
             tabindex="0"
-            title="Сменить фото"
+            :title="t('profilePage.changePhoto')"
             @click="triggerAvatarInput"
             @keydown.enter="triggerAvatarInput"
             @keydown.space.prevent="triggerAvatarInput"
@@ -35,7 +35,7 @@
                   <circle cx="12" cy="8" r="4"/>
                   <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
                 </svg>
-                <span class="avatar-placeholder-text">Фото</span>
+                <span class="avatar-placeholder-text">{{ t('profilePage.photo') }}</span>
               </div>
             </template>
             <input
@@ -43,12 +43,12 @@
               type="file"
               accept="image/jpeg,image/png,image/webp"
               class="avatar-input-hidden"
-              aria-label="Выберите фото (JPG, PNG или WebP)"
+              :aria-label="t('profilePage.selectPhotoAria')"
               @change="onAvatarFileChange"
             />
           </div>
           <p v-if="avatarError" class="avatar-error">{{ avatarError }}</p>
-          <p class="avatar-hint">JPG, PNG или WebP, до 2 МБ</p>
+          <p class="avatar-hint">{{ t('profile.avatarHint') }}</p>
         </div>
         <div class="profile-header-info">
           <h1>{{ authStore.userName }}</h1>
@@ -59,18 +59,18 @@
                 <path d="M4 4h12v12H4z" />
                 <path d="M16 8l-4 4-2-2-4 4" />
               </svg>
-              {{ authStore.user?.email ?? '—' }}
+              {{ authStore.user?.email ?? t('common.emDash') }}
             </span>
             <span class="meta-badge">
               <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor">
                 <path d="M18 15v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2" />
                 <path d="M10 2v12M4 8l6 6 6-6" />
               </svg>
-              {{ authStore.user?.phone || '—' }}
+              {{ authStore.user?.phone || t('common.emDash') }}
             </span>
           </div>
           <div class="profile-actions">
-            <button type="button" class="btn btn-primary btn-sm" @click="openEditProfileModal">Редактировать профиль</button>
+            <button type="button" class="btn btn-primary btn-sm" @click="openEditProfileModal">{{ t('profilePage.editProfile') }}</button>
           </div>
         </div>
       </div>
@@ -80,12 +80,12 @@
       <div class="profile-left-column">
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">Личные данные</h2>
+            <h2 class="card-title">{{ t('profilePage.personalData') }}</h2>
           </div>
           <form class="profile-form" @submit.prevent="saveProfile">
             <div class="form-grid">
               <div class="form-group">
-                <label for="profile-firstName">Имя</label>
+                <label for="profile-firstName">{{ t('profile.firstName') }}</label>
                 <input
                   id="profile-firstName"
                   v-model="profileForm.firstName"
@@ -96,7 +96,7 @@
                 />
               </div>
               <div class="form-group">
-                <label for="profile-lastName">Фамилия</label>
+                <label for="profile-lastName">{{ t('profile.lastName') }}</label>
                 <input
                   id="profile-lastName"
                   v-model="profileForm.lastName"
@@ -107,53 +107,53 @@
                 />
               </div>
               <div class="form-group">
-                <label for="profile-phone">Телефон</label>
+                <label for="profile-phone">{{ t('profile.phone') }}</label>
                 <input
                   id="profile-phone"
                   v-model="profileForm.phone"
                   type="tel"
                   class="form-control"
-                  placeholder="+7..."
+                  :placeholder="t('profile.phonePlaceholder')"
                 />
               </div>
               <div class="form-group">
-                <label for="profile-district">Район</label>
+                <label for="profile-district">{{ t('volunteers.thDistrict') }}</label>
                 <select id="profile-district" v-model="profileForm.district" class="form-control">
-                  <option value="">— не указан —</option>
-                  <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ DISTRICT_LABELS[d] ?? d }}</option>
+                  <option value="">{{ t('profilePage.districtUnset') }}</option>
+                  <option v-for="d in ALLOWED_DISTRICTS" :key="d" :value="d">{{ enumLabel.district(d) }}</option>
                 </select>
               </div>
               <div class="form-group form-group-full">
-                <label for="profile-telegram">Telegram</label>
+                <label for="profile-telegram">{{ t('profilePage.telegram') }}</label>
                 <input
                   id="profile-telegram"
                   v-model="profileForm.telegramUsername"
                   type="text"
                   class="form-control"
-                  placeholder="@username или username"
+                  :placeholder="t('profilePage.telegramPlaceholder')"
                 />
                 <span v-if="profileError" class="form-error">{{ profileError }}</span>
                 <span v-if="profileSuccess" class="form-success">{{ profileSuccess }}</span>
               </div>
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary" :disabled="profileSaving">Сохранить</button>
+              <button type="submit" class="btn btn-primary" :disabled="profileSaving">{{ t('profilePage.save') }}</button>
             </div>
           </form>
           <div class="info-list profile-readonly-meta" style="padding: 0 var(--spacing-xl) var(--spacing-xl)">
             <div class="info-item">
-              <span class="info-label">Email</span>
-              <span class="info-value">{{ authStore.user?.email ?? '—' }}</span>
+              <span class="info-label">{{ t('profilePage.emailLabel') }}</span>
+              <span class="info-value">{{ authStore.user?.email ?? t('common.emDash') }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Роль</span>
+              <span class="info-label">{{ t('profilePage.roleLabel') }}</span>
               <span class="info-value">{{ authStore.userRole }}</span>
             </div>
           </div>
         </div>
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">Статистика</h2>
+            <h2 class="card-title">{{ t('profilePage.statsTitle') }}</h2>
           </div>
           <div class="profile-stats" style="padding: var(--spacing-xl)">
             <div class="profile-stat-item">
@@ -171,7 +171,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-value">{{ myRequests.length }}</div>
-                <div class="stat-label">Созданных запросов</div>
+                <div class="stat-label">{{ t('profilePage.createdRequests') }}</div>
               </div>
             </div>
             <div class="profile-stat-item">
@@ -190,28 +190,28 @@
               </div>
               <div class="stat-content">
                 <div class="stat-value">8</div>
-                <div class="stat-label">Выполнено (как волонтёр)</div>
+                <div class="stat-label">{{ t('profilePage.completedAsVolunteer') }}</div>
               </div>
             </div>
           </div>
         </div>
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">Мои заявки</h2>
+            <h2 class="card-title">{{ t('profilePage.myRequestsTitle') }}</h2>
           </div>
-          <div v-if="myRequestsLoading" class="profile-requests-loading">Загрузка...</div>
+          <div v-if="myRequestsLoading" class="profile-requests-loading">{{ t('common.loadingEllipsis') }}</div>
           <div v-else-if="myRequestsError" class="profile-requests-error">{{ myRequestsError }}</div>
           <div v-else-if="myRequests.length === 0" class="profile-requests-empty">
-            Вы пока не создавали заявок. <router-link to="/create-request">Создать запрос</router-link>
+            {{ t('profilePage.myRequestsEmpty') }} <router-link to="/create-request">{{ t('profilePage.createRequestLink') }}</router-link>
           </div>
           <ul v-else class="profile-requests-list">
             <li v-for="req in myRequests" :key="req.id" class="profile-request-item">
               <router-link :to="'/map?request=' + req.id" class="profile-request-link">
                 <span class="profile-request-title">{{ req.title }}</span>
                 <span class="profile-request-meta">
-                  {{ problemTypeLabels[req.problemType] ?? req.problemType }} ·
-                  {{ priorityLabels[req.priority] ?? req.priority }} ·
-                  {{ statusLabels[req.status] ?? req.status }}
+                  {{ enumLabel.problemType(req.problemType) ?? req.problemType }} ·
+                  {{ enumLabel.priority(req.priority) ?? req.priority }} ·
+                  {{ enumLabel.requestStatus(req.status) ?? req.status }}
                 </span>
                 <span class="profile-request-address">{{ req.address }}</span>
               </router-link>
@@ -220,24 +220,24 @@
         </div>
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">Навыки</h2>
+            <h2 class="card-title">{{ t('profilePage.skillsTitle') }}</h2>
           </div>
           <div style="padding: var(--spacing-xl)">
             <div class="skills-grid">
-              <span v-for="s in skills" :key="s" class="skill-badge-large">{{ s }}</span>
+              <span v-for="(s, idx) in skills" :key="idx" class="skill-badge-large">{{ s }}</span>
             </div>
           </div>
         </div>
         <div class="card card-danger-zone">
           <div class="card-header">
-            <h2 class="card-title">Удалить аккаунт</h2>
+            <h2 class="card-title">{{ t('profilePage.deleteAccountTitle') }}</h2>
           </div>
           <div class="danger-zone-content">
-            <p>Удаление аккаунта необратимо. Будут удалены ваши заявки и привязки.</p>
+            <p>{{ t('profilePage.deleteAccountWarning') }}</p>
             <div v-if="deleteAccountError" class="auth-message auth-message-error">{{ deleteAccountError }}</div>
             <form class="delete-account-form" @submit.prevent="submitDeleteAccount">
               <div class="form-group">
-                <label for="delete-password">Введите пароль для подтверждения</label>
+                <label for="delete-password">{{ t('profilePage.deletePasswordLabel') }}</label>
                 <input
                   id="delete-password"
                   v-model="deletePassword"
@@ -249,14 +249,14 @@
               </div>
               <label class="checkbox-label">
                 <input v-model="deleteConfirm" type="checkbox" />
-                <span>Я понимаю, что аккаунт и данные будут удалены безвозвратно</span>
+                <span>{{ t('profilePage.deleteUnderstand') }}</span>
               </label>
               <button
                 type="submit"
                 class="btn btn-danger"
                 :disabled="!deleteConfirm || !deletePassword.trim() || deleteAccountSaving"
               >
-                {{ deleteAccountSaving ? 'Удаление...' : 'Удалить аккаунт' }}
+                {{ deleteAccountSaving ? t('profilePage.deleteSubmitting') : t('profilePage.deleteSubmit') }}
               </button>
             </form>
           </div>
@@ -265,7 +265,7 @@
       <div class="profile-right-column">
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">Активность</h2>
+            <h2 class="card-title">{{ t('profilePage.activityTitle') }}</h2>
           </div>
           <div class="timeline" style="padding: var(--spacing-xl)">
             <div v-for="a in timeline" :key="a.id" class="timeline-item">
@@ -279,7 +279,7 @@
         </div>
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">Достижения</h2>
+            <h2 class="card-title">{{ t('profilePage.achievementsTitle') }}</h2>
           </div>
           <div class="achievements-grid" style="padding: var(--spacing-xl)">
             <div
@@ -303,27 +303,27 @@
     <div v-if="editProfileModalOpen" class="modal-overlay" @click.self="editProfileModalOpen = false">
       <div class="modal-card">
         <div class="modal-header">
-          <h2 class="modal-title">Редактировать профиль</h2>
-          <button type="button" class="modal-close" aria-label="Закрыть" @click="editProfileModalOpen = false">&times;</button>
+          <h2 class="modal-title">{{ t('profilePage.modalEditTitle') }}</h2>
+          <button type="button" class="modal-close" :aria-label="t('common.close')" @click="editProfileModalOpen = false">&times;</button>
         </div>
         <form class="modal-body" @submit.prevent="saveEditProfile">
-          <p class="modal-hint">Контактные данные (имя, телефон, район, Telegram) можно изменить в блоке «Личные данные» ниже.</p>
+          <p class="modal-hint">{{ t('profilePage.modalEditHint') }}</p>
           <div class="form-group">
-            <label for="edit-profile-email">Email</label>
+            <label for="edit-profile-email">{{ t('profilePage.emailLabel') }}</label>
             <input
               id="edit-profile-email"
               v-model="editProfileEmail"
               type="email"
               class="form-control"
               required
-              placeholder="email@example.com"
+              :placeholder="t('profilePage.emailPlaceholder')"
             />
             <span v-if="editProfileError" class="form-error">{{ editProfileError }}</span>
             <span v-if="editProfileSuccess" class="form-success">{{ editProfileSuccess }}</span>
           </div>
           <div class="form-actions">
-            <button type="button" class="btn btn-secondary" @click="editProfileModalOpen = false">Отмена</button>
-            <button type="submit" class="btn btn-primary" :disabled="editProfileSaving">Сохранить</button>
+            <button type="button" class="btn btn-secondary" @click="editProfileModalOpen = false">{{ t('common.cancel') }}</button>
+            <button type="submit" class="btn btn-primary" :disabled="editProfileSaving">{{ t('common.save') }}</button>
           </div>
         </form>
       </div>
@@ -334,11 +334,15 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth.js'
 import { getMyRequests } from '../api/requests.js'
 import { updateProfile, uploadAvatar, deleteAccount } from '../api/auth.js'
-import { PROBLEM_TYPE_LABELS, PRIORITY_LABELS, ALLOWED_DISTRICTS, DISTRICT_LABELS } from '../constants/requests.js'
+import { ALLOWED_DISTRICTS } from '../constants/requests.js'
+import { useEnumLabel } from '../composables/useEnumLabel.js'
 
+const { t } = useI18n()
+const enumLabel = useEnumLabel()
 const router = useRouter()
 const authStore = useAuthStore()
 const avatarInputRef = ref(null)
@@ -359,11 +363,11 @@ async function onAvatarFileChange(e) {
   avatarError.value = ''
   const allowed = ['image/jpeg', 'image/png', 'image/webp']
   if (!allowed.includes(file.type)) {
-    avatarError.value = 'Допустимы только JPG, PNG или WebP'
+    avatarError.value = t('profilePage.avatarTypeError')
     return
   }
   if (file.size > 2 * 1024 * 1024) {
-    avatarError.value = 'Размер файла не более 2 МБ'
+    avatarError.value = t('profilePage.avatarSizeError')
     return
   }
   e.target.value = ''
@@ -373,7 +377,7 @@ async function onAvatarFileChange(e) {
     authStore.setAuth(authStore.token, { ...authStore.user, avatarUrl })
     avatarLoadError.value = false
   } catch (err) {
-    avatarError.value = err.message || 'Не удалось загрузить фото'
+    avatarError.value = err.message || t('profilePage.avatarUploadError')
   } finally {
     avatarUploading.value = false
   }
@@ -406,7 +410,7 @@ function openEditProfileModal() {
 async function saveEditProfile() {
   const email = editProfileEmail.value?.trim()
   if (!email) {
-    editProfileError.value = 'Введите email'
+    editProfileError.value = t('profilePage.emailRequired')
     return
   }
   editProfileError.value = ''
@@ -415,13 +419,13 @@ async function saveEditProfile() {
   try {
     const { user: updated } = await updateProfile({ email })
     authStore.setAuth(authStore.token, updated)
-    editProfileSuccess.value = 'Email сохранён. Подтвердите новый email по ссылке из письма.'
+    editProfileSuccess.value = t('profilePage.emailSaved')
     setTimeout(() => {
       editProfileModalOpen.value = false
       editProfileSuccess.value = ''
     }, 2500)
   } catch (e) {
-    editProfileError.value = e.message || 'Не удалось сохранить email'
+    editProfileError.value = e.message || t('profilePage.emailSaveError')
   } finally {
     editProfileSaving.value = false
   }
@@ -441,7 +445,7 @@ async function submitDeleteAccount() {
     authStore.logout()
     router.push('/')
   } catch (err) {
-    deleteAccountError.value = err.message || 'Не удалось удалить аккаунт'
+    deleteAccountError.value = err.message || t('profilePage.deleteAccountError')
   } finally {
     deleteAccountSaving.value = false
   }
@@ -469,10 +473,10 @@ async function saveProfile() {
       telegramUsername: profileForm.telegramUsername.trim() || undefined,
     })
     authStore.setAuth(authStore.token, updated)
-    profileSuccess.value = 'Профиль сохранён'
+    profileSuccess.value = t('profile.saveSuccess')
     setTimeout(() => { profileSuccess.value = '' }, 3000)
   } catch (e) {
-    profileError.value = e.message || 'Не удалось сохранить профиль'
+    profileError.value = e.message || t('profilePage.profileSaveError')
   } finally {
     profileSaving.value = false
   }
@@ -484,51 +488,27 @@ const myRequests = ref([])
 const myRequestsLoading = ref(true)
 const myRequestsError = ref('')
 
-const problemTypeLabels = PROBLEM_TYPE_LABELS
-const priorityLabels = PRIORITY_LABELS
-const statusLabels = {
-  NEW: 'Новый',
-  IN_PROGRESS: 'В работе',
-  DONE: 'Выполнен',
-  CANCELLED: 'Отменён',
-}
-
 onMounted(async () => {
   syncProfileForm()
   try {
     myRequests.value = await getMyRequests()
   } catch (e) {
-    myRequestsError.value = e.message || 'Не удалось загрузить заявки'
+    myRequestsError.value = e.message || t('profilePage.myRequestsLoadError')
   } finally {
     myRequestsLoading.value = false
   }
 })
 
-const skills = ref(['Первая помощь', 'Логистика'])
-const timeline = ref([
-  {
-    id: 1,
-    type: 'success',
-    text: 'Выполнен запрос <strong>#1247</strong> — медицинская помощь.',
-    time: '2 ч назад',
-  },
-  {
-    id: 2,
-    type: 'info',
-    text: 'Назначен на запрос <strong>#1248</strong> — эвакуация.',
-    time: 'Вчера, 14:30',
-  },
-  {
-    id: 3,
-    type: 'warning',
-    text: 'Запрос <strong>#1240</strong> отменён координатором.',
-    time: 'Вчера, 10:00',
-  },
+const skills = computed(() => [t('profilePage.skill1'), t('profilePage.skill2')])
+const timeline = computed(() => [
+  { id: 1, type: 'success', text: t('profilePage.timeline1'), time: t('profilePage.time2h') },
+  { id: 2, type: 'info', text: t('profilePage.timeline2'), time: t('profilePage.timeYesterday') },
+  { id: 3, type: 'warning', text: t('profilePage.timeline3'), time: t('profilePage.timeYesterday10') },
 ])
-const achievements = ref([
-  { id: 1, title: 'Первый отклик', description: 'Откликнулся на первый запрос', unlocked: true },
-  { id: 2, title: '10 выполненных заданий', description: 'Выполнил 10 запросов', unlocked: true },
-  { id: 3, title: 'Герой недели', description: 'Топ-3 волонтёра за неделю', unlocked: false },
+const achievements = computed(() => [
+  { id: 1, title: t('profilePage.ach1t'), description: t('profilePage.ach1d'), unlocked: true },
+  { id: 2, title: t('profilePage.ach2t'), description: t('profilePage.ach2d'), unlocked: true },
+  { id: 3, title: t('profilePage.ach3t'), description: t('profilePage.ach3d'), unlocked: false },
 ])
 </script>
 

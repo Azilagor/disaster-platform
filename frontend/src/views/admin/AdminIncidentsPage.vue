@@ -1,45 +1,45 @@
 <template>
   <div>
-    <h1 class="page-title">Инциденты</h1>
+    <h1 class="page-title">{{ t('admin.incidentsTitle') }}</h1>
     <div class="top-row">
-      <router-link to="/admin/incidents/new" class="btn btn-primary">Создать инцидент</router-link>
+      <router-link to="/admin/incidents/new" class="btn btn-primary">{{ t('incidents.create') }}</router-link>
     </div>
     <div class="card">
       <div class="filters-row">
         <select v-model="filters.status" class="form-control" style="max-width: 140px;" @change="load">
-          <option value="">Все статусы</option>
+          <option value="">{{ t('admin.allStatuses') }}</option>
           <option value="ACTIVE">ACTIVE</option>
           <option value="RESOLVING">RESOLVING</option>
           <option value="RESOLVED">RESOLVED</option>
         </select>
-        <button type="button" class="btn btn-secondary" @click="load">Обновить</button>
+        <button type="button" class="btn btn-secondary" @click="load">{{ t('common.refresh') }}</button>
       </div>
-      <div v-if="loading" class="table-wrap">Загрузка…</div>
+      <div v-if="loading" class="table-wrap">{{ t('admin.loading') }}</div>
       <div v-else class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Заголовок</th>
-              <th>Статус</th>
-              <th>Уровень</th>
-              <th>Район</th>
+              <th>{{ t('admin.thId') }}</th>
+              <th>{{ t('admin.thTitle') }}</th>
+              <th>{{ t('admin.thStatus') }}</th>
+              <th>{{ t('admin.thSeverity') }}</th>
+              <th>{{ t('admin.thDistrict') }}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="i in items" :key="i.id">
-              <td>{{ i.id }}</td>
-              <td>{{ i.title }}</td>
-              <td><span class="badge">{{ i.status }}</span></td>
-              <td>{{ i.severity }}</td>
-              <td>{{ i.district }}</td>
-              <td><router-link :to="`/admin/incidents/${i.id}`" class="btn btn-sm btn-secondary">Открыть</router-link></td>
+            <tr v-for="item in items" :key="item.id">
+              <td>{{ item.id }}</td>
+              <td>{{ item.title }}</td>
+              <td><span class="badge">{{ enumLabel.incidentStatus(item.status) || item.status }}</span></td>
+              <td>{{ enumLabel.severity(item.severity) || item.severity }}</td>
+              <td>{{ enumLabel.district(item.district) || item.district }}</td>
+              <td><router-link :to="`/admin/incidents/${item.id}`" class="btn btn-sm btn-secondary">{{ t('admin.openDetail') }}</router-link></td>
             </tr>
           </tbody>
         </table>
-        <p v-if="!items.length && !loading" class="empty-msg">Нет инцидентов</p>
-        <p class="total-msg">Всего: {{ total }}</p>
+        <p v-if="!items.length && !loading" class="empty-msg">{{ t('admin.noIncidents') }}</p>
+        <p class="total-msg">{{ t('admin.totalOf', { total }) }}</p>
       </div>
     </div>
   </div>
@@ -47,7 +47,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getIncidents } from '../../api/incidents.js'
+import { useEnumLabel } from '../../composables/useEnumLabel.js'
+
+const { t } = useI18n()
+const enumLabel = useEnumLabel()
 
 const items = ref([])
 const total = ref(0)
