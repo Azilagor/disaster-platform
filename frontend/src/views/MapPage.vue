@@ -206,7 +206,7 @@
 import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
-import { getRequestsMap, volunteerRespond } from '../api/requests.js'
+import { getRequestsMap, getMyRequests, volunteerRespond } from '../api/requests.js'
 import { withLoading } from '../stores/loading.js'
 import { API_BASE_URL } from '../api/config.js'
 import {
@@ -232,7 +232,49 @@ const mapRef         = ref(null)
 let map          = null
 let markersLayer = null
 
-const filters = reactive({ district: '', priority: '', problemType: '' })
+const filters = reactive({ scope: 'all', district: '', priority: '', problemType: '' })
+
+const ACTIVE_STATUSES = new Set(['NEW', 'IN_PROGRESS'])
+const PRIORITY_RANK = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+
+function matchesMapFilters(r) {
+  if (filters.district && r.district !== filters.district) return false
+  if (filters.priority && r.priority !== filters.priority) return false
+  if (filters.problemType && r.problemType !== filters.problemType) return false
+  return true
+}
+
+/** Строка из GET /requests/my приводим к тому же виду, что у точек с /requests/map */
+function rowForMap(r) {
+  return {
+    id: r.id,
+    title: r.title,
+    problemType: r.problemType,
+    priority: r.priority,
+    status: r.status,
+    address: r.address,
+    district: r.district,
+    landmark: r.landmark ?? null,
+    peopleCount: r.peopleCount,
+    contactPhone: r.contactPhone ?? undefined,
+    latitude: r.latitude ?? null,
+    longitude: r.longitude ?? null,
+    isPublished: r.isPublished,
+    createdAt: r.createdAt,
+    _count: { volunteers: Array.isArray(r.volunteers) ? r.volunteers.length : r._count?.volunteers ?? 0 },
+  }
+}
+
+function sortMapItems(items) {
+  return [...items].sort((a, b) => {
+    const pa = PRIORITY_RANK[a.priority] ?? 2
+    const pb = PRIORITY_RANK[b.priority] ?? 2
+    if (pa !== pb) return pa - pb
+    const ta = new Date(a.createdAt || 0).getTime()
+    const tb = new Date(b.createdAt || 0).getTime()
+    return tb - ta
+  })
+}
 
 // ── Погода ─────────────────────────────────────────────────────
 const weather        = ref(null)
@@ -292,6 +334,16 @@ function makePinIcon(color) {
     <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="${color}" stroke="#fff" stroke-width="1.5" filter="url(#ps)"/>
     <circle cx="12" cy="12" r="4.5" fill="#fff" fill-opacity="0.9"/>
   </svg>`
+}
+
+/** Координаты маркера: из заявки или центр района (если геокод не задан). */
+function markerLatLng(r) {
+  const lat = r.latitude != null ? Number(r.latitude) : NaN
+  const lng = r.longitude != null ? Number(r.longitude) : NaN
+  if (!Number.isNaN(lat) && !Number.isNaN(lng)) return [lat, lng]
+  const c = r.district && DISTRICT_CENTROIDS[r.district]
+  if (c && typeof c.lat === 'number' && typeof c.lng === 'number') return [c.lat, c.lng]
+  return null
 }
 
 function updateMarkers() {
