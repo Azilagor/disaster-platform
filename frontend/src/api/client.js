@@ -34,7 +34,7 @@ export async function fetchWithAuth(url, options = {}, useFullUrl = false) {
   const response = await fetch(fullUrl, { ...options, headers })
   if (response.status === 401) {
     clearSessionAndRedirectToLogin()
-    const error = new Error('Необходима повторная авторизация')
+    const error = new Error('client.reauth')
     error.status = 401
     throw error
   }
@@ -54,7 +54,7 @@ export async function fetchWithAuthFormData(url, formData) {
   const response = await fetch(fullUrl, { method: 'POST', headers, body: formData })
   if (response.status === 401) {
     clearSessionAndRedirectToLogin()
-    const error = new Error('Необходима повторная авторизация')
+    const error = new Error('client.reauth')
     error.status = 401
     throw error
   }

@@ -11,36 +11,36 @@
               />
               <path d="M16 10V22M10 16H22" stroke="white" stroke-width="2" stroke-linecap="round" />
             </svg>
-            <span>DisasterHelp</span>
+            <span>{{ $t('brand.name') }}</span>
           </div>
-          <p>Платформа координации помощи при чрезвычайных ситуациях</p>
+          <p>{{ $t('footer.tagline') }}</p>
         </div>
         <div class="footer-col">
-          <h4>Платформа</h4>
+          <h4>{{ $t('footer.platform') }}</h4>
           <ul>
-            <li><router-link :to="{ path: '/', hash: '#features' }">Возможности</router-link></li>
+            <li><router-link :to="{ path: '/', hash: '#features' }">{{ $t('nav.features') }}</router-link></li>
             <li>
-              <router-link :to="{ path: '/', hash: '#how-it-works' }">Как работает</router-link>
+              <router-link :to="{ path: '/', hash: '#how-it-works' }">{{ $t('footer.howWorks') }}</router-link>
             </li>
-            <li><router-link to="/register">Регистрация</router-link></li>
+            <li><router-link to="/register">{{ $t('footer.registration') }}</router-link></li>
           </ul>
         </div>
         <div class="footer-col">
-          <h4>Роли</h4>
+          <h4>{{ $t('footer.roles') }}</h4>
           <ul>
             <li>
-              <router-link :to="{ path: '/', hash: '#features' }">Для пользователей</router-link>
+              <router-link :to="{ path: '/', hash: '#features' }">{{ $t('footer.forUsers') }}</router-link>
             </li>
             <li>
-              <router-link :to="{ path: '/', hash: '#how-it-works' }">Для волонтёров</router-link>
+              <router-link :to="{ path: '/', hash: '#how-it-works' }">{{ $t('footer.forVolunteers') }}</router-link>
             </li>
             <li>
-              <router-link :to="{ path: '/', hash: '#about' }">Для координаторов</router-link>
+              <router-link :to="{ path: '/', hash: '#about' }">{{ $t('footer.forCoordinators') }}</router-link>
             </li>
           </ul>
         </div>
         <div class="footer-col">
-          <h4>Контакты</h4>
+          <h4>{{ $t('footer.contacts') }}</h4>
           <ul>
             <li><a href="mailto:help@disasterhelp.kz">help@disasterhelp.kz</a></li>
             <li><a href="tel:+77273123456">+7 (727) 312-34-56</a></li>
@@ -49,7 +49,7 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2026 DisasterHelp. Все права защищены.</p>
+        <p>{{ $t('footer.copyright') }}</p>
       </div>
     </div>
   </footer>

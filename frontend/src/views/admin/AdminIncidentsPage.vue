@@ -1,29 +1,29 @@
 <template>
   <div>
-    <h1 class="page-title">Инциденты</h1>
+    <h1 class="page-title">{{ $t('admin.incidentsTitle') }}</h1>
     <div class="top-row">
-      <router-link to="/admin/incidents/new" class="btn btn-primary">Создать инцидент</router-link>
+      <router-link to="/admin/incidents/new" class="btn btn-primary">{{ $t('incidents.create') }}</router-link>
     </div>
     <div class="card">
       <div class="filters-row">
         <select v-model="filters.status" class="form-control" style="max-width: 140px;" @change="load">
-          <option value="">Все статусы</option>
+          <option value="">{{ $t('incidents.allStatuses') }}</option>
           <option value="ACTIVE">ACTIVE</option>
           <option value="RESOLVING">RESOLVING</option>
           <option value="RESOLVED">RESOLVED</option>
         </select>
-        <button type="button" class="btn btn-secondary" @click="load">Обновить</button>
+        <button type="button" class="btn btn-secondary" @click="load">{{ $t('common.refresh') }}</button>
       </div>
-      <div v-if="loading" class="table-wrap">Загрузка…</div>
+      <div v-if="loading" class="table-wrap">{{ $t('common.loadingEllipsis') }}</div>
       <div v-else class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Заголовок</th>
-              <th>Статус</th>
-              <th>Уровень</th>
-              <th>Район</th>
+              <th>{{ $t('common.idColumn') }}</th>
+              <th>{{ $t('common.title') }}</th>
+              <th>{{ $t('common.status') }}</th>
+              <th>{{ $t('admin.level') }}</th>
+              <th>{{ $t('common.district') }}</th>
               <th></th>
             </tr>
           </thead>
@@ -34,12 +34,12 @@
               <td><span class="badge">{{ i.status }}</span></td>
               <td>{{ i.severity }}</td>
               <td>{{ i.district }}</td>
-              <td><router-link :to="`/admin/incidents/${i.id}`" class="btn btn-sm btn-secondary">Открыть</router-link></td>
+              <td><router-link :to="`/admin/incidents/${i.id}`" class="btn btn-sm btn-secondary">{{ $t('common.open') }}</router-link></td>
             </tr>
           </tbody>
         </table>
-        <p v-if="!items.length && !loading" class="empty-msg">Нет инцидентов</p>
-        <p class="total-msg">Всего: {{ total }}</p>
+        <p v-if="!items.length && !loading" class="empty-msg">{{ $t('admin.emptyIncidents') }}</p>
+        <p class="total-msg">{{ $t('common.total', { n: total }) }}</p>
       </div>
     </div>
   </div>

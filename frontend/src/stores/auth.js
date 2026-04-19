@@ -2,13 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as authApi from '../api/auth.js'
 import { getUploadsFullUrl } from '../api/config.js'
-
-const ROLE_LABELS = {
-  USER: 'Пользователь',
-  VOLUNTEER: 'Волонтёр',
-  COORDINATOR: 'Координатор',
-  ADMIN: 'Администратор',
-}
+import { i18n } from '../i18n/index.js'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token'))
@@ -27,12 +21,21 @@ export const useAuthStore = defineStore('auth', () => {
   const isAdmin = computed(() => (user.value?.role || '').toUpperCase() === 'ADMIN')
 
   const userName = computed(() => {
-    if (!user.value) return 'Пользователь'
+    i18n.global.locale.value
+    const fallback = i18n.global.t('roles.default')
+    if (!user.value) return fallback
     const { firstName, lastName } = user.value
-    return [firstName, lastName].filter(Boolean).join(' ') || 'Пользователь'
+    return [firstName, lastName].filter(Boolean).join(' ') || fallback
   })
 
-  const userRole = computed(() => (user.value && ROLE_LABELS[user.value.role]) || 'Пользователь')
+  const userRole = computed(() => {
+    i18n.global.locale.value
+    const fallback = i18n.global.t('roles.default')
+    if (!user.value?.role) return fallback
+    const r = String(user.value.role).toUpperCase()
+    const key = `roles.${r}`
+    return i18n.global.te(key) ? i18n.global.t(key) : fallback
+  })
 
   const userAvatar = computed(() => {
     if (user.value?.avatarUrl) return getUploadsFullUrl(user.value.avatarUrl)

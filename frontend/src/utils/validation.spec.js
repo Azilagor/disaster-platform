@@ -17,6 +17,7 @@ import {
   validateDistrict,
   validateRequestTitle,
   validateRequestDescription,
+  validateRequiredAddress,
 } from './validation.js'
 
 // Built from fragments so no literal triggers generic-password detection (test data only)
@@ -61,37 +62,39 @@ describe('normalizeEmail', () => {
 
 describe('validateEmail', () => {
   it('returns error when empty', () => {
-    expect(validateEmail('')).toBe('Email обязателен')
-    expect(validateEmail('   ')).toBe('Email обязателен')
+    expect(validateEmail('')).toBe('validation.emailRequired')
+    expect(validateEmail('   ')).toBe('validation.emailRequired')
   })
   it('returns null for valid email', () => {
     expect(validateEmail('a@b.co')).toBe(null)
     expect(validateEmail('user@example.com')).toBe(null)
   })
   it('returns error for invalid format', () => {
-    expect(validateEmail('no-at')).toBe('Введите корректный email')
-    expect(validateEmail('@nodomain')).toBe('Введите корректный email')
-    expect(validateEmail('nodot@domain')).toBe('Введите корректный email')
+    expect(validateEmail('no-at')).toBe('validation.emailInvalid')
+    expect(validateEmail('@nodomain')).toBe('validation.emailInvalid')
+    expect(validateEmail('nodot@domain')).toBe('validation.emailInvalid')
   })
 })
 
 describe('validatePassword', () => {
   it('returns error when empty', () => {
-    expect(validatePassword('')).toBe('Пароль обязателен')
-    expect(validatePassword('   ')).toBe('Пароль обязателен')
-    expect(validatePassword(null)).toBe('Пароль обязателен')
+    expect(validatePassword('')).toBe('validation.passwordRequired')
+    expect(validatePassword('   ')).toBe('validation.passwordRequired')
+    expect(validatePassword(null)).toBe('validation.passwordRequired')
   })
   it('returns error when less than 8 chars', () => {
-    expect(validatePassword('A' + 'b' + '1' + '!')).toBe('Пароль должен быть не менее 8 символов')
+    expect(validatePassword('A' + 'b' + '1' + '!')).toBe('validation.passwordMinLength')
   })
   it('returns error when no uppercase', () => {
-    expect(validatePassword('a' + 'b' + 'c' + 'd' + 'e' + 'f' + 'g' + '1' + '!')).toBe('Нужна хотя бы одна заглавная буква')
+    expect(validatePassword('a' + 'b' + 'c' + 'd' + 'e' + 'f' + 'g' + '1' + '!')).toBe(
+      'validation.passwordUppercase'
+    )
   })
   it('returns error when no digit', () => {
-    expect(validatePassword('Ab' + 'cd' + 'ef' + 'gh' + '!')).toBe('Нужна хотя бы одна цифра')
+    expect(validatePassword('Ab' + 'cd' + 'ef' + 'gh' + '!')).toBe('validation.passwordDigit')
   })
   it('returns error when no special char', () => {
-    expect(validatePassword('Ab' + 'cd' + 'ef' + 'gh' + '1')).toBe('Нужен хотя бы один спецсимвол')
+    expect(validatePassword('Ab' + 'cd' + 'ef' + 'gh' + '1')).toBe('validation.passwordSpecial')
   })
   it('returns null for valid password', () => {
     expect(validatePassword(validPw1)).toBe(null)
@@ -101,12 +104,12 @@ describe('validatePassword', () => {
 
 describe('validatePhone', () => {
   it('returns error when empty', () => {
-    expect(validatePhone('')).toBe('Телефон обязателен')
-    expect(validatePhone('   ')).toBe('Телефон обязателен')
+    expect(validatePhone('')).toBe('validation.phoneRequired')
+    expect(validatePhone('   ')).toBe('validation.phoneRequired')
   })
   it('returns error when fewer than 10 digits', () => {
-    expect(validatePhone('123')).toBe('Введите корректный номер телефона')
-    expect(validatePhone('+7 (999) 12')).toBe('Введите корректный номер телефона')
+    expect(validatePhone('123')).toBe('validation.phoneInvalid')
+    expect(validatePhone('+7 (999) 12')).toBe('validation.phoneInvalid')
   })
   it('returns null for 10+ digits', () => {
     expect(validatePhone('+7 999 123 45 67')).toBe(null)
@@ -117,24 +120,26 @@ describe('validatePhone', () => {
 
 describe('validateName', () => {
   it('returns error when empty', () => {
-    expect(validateName('')).toBe('Поле обязательно')
-    expect(validateName('  ')).toBe('Поле обязательно')
-    expect(validateName('', 'Имя')).toBe('Имя обязательно')
+    expect(validateName('')).toBe('validation.fieldRequired')
+    expect(validateName('  ')).toBe('validation.fieldRequired')
+    expect(validateName('', 'firstName')).toBe('validation.firstNameRequired')
   })
   it('returns error when less than 2 chars', () => {
-    expect(validateName('A')).toBe('Поле должно быть не менее 2 символов')
-    expect(validateName('И', 'Имя')).toBe('Имя должно быть не менее 2 символов')
+    expect(validateName('A')).toBe('validation.fieldMin')
+    expect(validateName('И', 'firstName')).toBe('validation.firstNameMin')
   })
   it('returns null for valid name', () => {
     expect(validateName('Иван')).toBe(null)
-    expect(validateName('  Иван  ', 'Имя')).toBe(null)
+    expect(validateName('  Иван  ', 'firstName')).toBe(null)
   })
 })
 
 describe('validatePasswordMatch', () => {
   it('returns error when passwords differ', () => {
-    expect(validatePasswordMatch('a', 'b')).toBe('Пароли не совпадают')
-    expect(validatePasswordMatch(validPwMismatchA, validPwMismatchB)).toBe('Пароли не совпадают')
+    expect(validatePasswordMatch('a', 'b')).toBe('validation.passwordsMismatch')
+    expect(validatePasswordMatch(validPwMismatchA, validPwMismatchB)).toBe(
+      'validation.passwordsMismatch'
+    )
   })
   it('returns null when match', () => {
     expect(validatePasswordMatch(validPw1, validPw1)).toBe(null)
@@ -174,18 +179,18 @@ describe('validateRegistrationForm', () => {
     expect(result.errors.email).toBeDefined()
     expect(result.errors.phone).toBeDefined()
     expect(result.errors.password).toBeDefined()
-    expect(result.errors.passwordConfirm).toBe('Пароли не совпадают')
-    expect(result.errors.role).toBe('Выберите роль')
+    expect(result.errors.passwordConfirm).toBe('validation.passwordsMismatch')
+    expect(result.errors.role).toBe('validation.roleRequired')
   })
 })
 
 describe('validateProblemType', () => {
   it('returns error when empty', () => {
-    expect(validateProblemType('')).toBe('Выберите тип проблемы')
-    expect(validateProblemType('  ')).toBe('Выберите тип проблемы')
+    expect(validateProblemType('')).toBe('validation.problemTypeRequired')
+    expect(validateProblemType('  ')).toBe('validation.problemTypeRequired')
   })
   it('returns error for invalid value', () => {
-    expect(validateProblemType('INVALID')).toBe('Недопустимый тип проблемы')
+    expect(validateProblemType('INVALID')).toBe('validation.problemTypeInvalid')
   })
   it('returns null for allowed value', () => {
     expect(validateProblemType('MEDICAL')).toBe(null)
@@ -195,10 +200,10 @@ describe('validateProblemType', () => {
 
 describe('validatePriority', () => {
   it('returns error when empty', () => {
-    expect(validatePriority('')).toBe('Выберите приоритет')
+    expect(validatePriority('')).toBe('validation.priorityRequired')
   })
   it('returns error for invalid value', () => {
-    expect(validatePriority('URGENT')).toBe('Недопустимый приоритет')
+    expect(validatePriority('URGENT')).toBe('validation.priorityInvalid')
   })
   it('returns null for allowed value', () => {
     expect(validatePriority('HIGH')).toBe(null)
@@ -208,10 +213,10 @@ describe('validatePriority', () => {
 
 describe('validateDistrict', () => {
   it('returns error when empty', () => {
-    expect(validateDistrict('')).toBe('Выберите район')
+    expect(validateDistrict('')).toBe('validation.districtRequired')
   })
   it('returns error for invalid value', () => {
-    expect(validateDistrict('UNKNOWN')).toBe('Недопустимый район')
+    expect(validateDistrict('UNKNOWN')).toBe('validation.districtInvalid')
   })
   it('returns null for allowed value', () => {
     expect(validateDistrict('ALMALYNSKIY')).toBe(null)
@@ -221,15 +226,15 @@ describe('validateDistrict', () => {
 
 describe('validateRequestTitle', () => {
   it('returns error when empty', () => {
-    expect(validateRequestTitle('')).toBe('Заголовок обязателен')
-    expect(validateRequestTitle('   ')).toBe('Заголовок обязателен')
+    expect(validateRequestTitle('')).toBe('validation.titleRequired')
+    expect(validateRequestTitle('   ')).toBe('validation.titleRequired')
   })
   it('returns error when less than 5 chars', () => {
-    expect(validateRequestTitle('1234')).toBe('Заголовок: от 5 до 200 символов')
-    expect(validateRequestTitle('  ab  ')).toBe('Заголовок: от 5 до 200 символов')
+    expect(validateRequestTitle('1234')).toBe('validation.titleLength')
+    expect(validateRequestTitle('  ab  ')).toBe('validation.titleLength')
   })
   it('returns error when more than 200 chars', () => {
-    expect(validateRequestTitle('a'.repeat(201))).toBe('Заголовок: от 5 до 200 символов')
+    expect(validateRequestTitle('a'.repeat(201))).toBe('validation.titleLength')
   })
   it('returns null for 5–200 chars', () => {
     expect(validateRequestTitle('12345')).toBe(null)
@@ -240,15 +245,29 @@ describe('validateRequestTitle', () => {
 
 describe('validateRequestDescription', () => {
   it('returns error when empty', () => {
-    expect(validateRequestDescription('')).toBe('Описание обязательно')
-    expect(validateRequestDescription('   ')).toBe('Описание обязательно')
+    expect(validateRequestDescription('')).toBe('validation.descriptionRequired')
+    expect(validateRequestDescription('   ')).toBe('validation.descriptionRequired')
   })
   it('returns error when less than 50 chars', () => {
-    expect(validateRequestDescription('short')).toBe('Описание должно быть минимум 50 символов')
-    expect(validateRequestDescription('a'.repeat(49))).toBe('Описание должно быть минимум 50 символов')
+    expect(validateRequestDescription('short')).toBe('validation.descriptionMin')
+    expect(validateRequestDescription('a'.repeat(49))).toBe('validation.descriptionMin')
   })
   it('returns null for 50+ chars', () => {
     expect(validateRequestDescription('a'.repeat(50))).toBe(null)
-    expect(validateRequestDescription('  ' + 'Подробное описание ситуации: адрес, количество людей, что требуется.  ')).toBe(null)
+    expect(
+      validateRequestDescription(
+        '  ' + 'Подробное описание ситуации: адрес, количество людей, что требуется.  '
+      )
+    ).toBe(null)
+  })
+})
+
+describe('validateRequiredAddress', () => {
+  it('returns error when empty', () => {
+    expect(validateRequiredAddress('')).toBe('validation.addressRequired')
+    expect(validateRequiredAddress('  ')).toBe('validation.addressRequired')
+  })
+  it('returns null when non-empty', () => {
+    expect(validateRequiredAddress('г. Алматы')).toBe(null)
   })
 })

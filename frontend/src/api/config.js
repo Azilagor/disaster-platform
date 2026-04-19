@@ -1,10 +1,15 @@
 /**
  * Базовый URL бэкенда: https://platform.oyustudio.kz/api/
  * Документация: https://platform.oyustudio.kz/api-docs/
- * Для локального бэка задайте VITE_API_URL=/api в .env.local.
+ *
+ * В dev по умолчанию используется относительный путь `/api` — запросы идут на тот же хост (Vite),
+ * прокси в vite.config.js перенаправляет на локальный бэкенд без CORS.
+ * Переопределение: VITE_API_URL в .env.local (например прямой URL к API).
  */
+const DEFAULT_PROD_API = 'https://platform.oyustudio.kz/api'
+
 export const API_BASE_URL =
-  import.meta.env.VITE_API_URL ?? 'http://localhost:4999/api'
+  import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? '/api' : DEFAULT_PROD_API)
 
 /** Базовый URL бэкенда без суффикса /api (для статики вроде /uploads/avatars/...) */
 export function getUploadsBaseUrl() {

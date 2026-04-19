@@ -1,8 +1,8 @@
 <template>
   <div class="not-found">
-    <h1>Страница не найдена</h1>
-    <p>Запрашиваемая страница не существует или была перемещена.</p>
-    <router-link to="/" class="link-home">На главную</router-link>
+    <h1>{{ $t('notFound.title') }}</h1>
+    <p>{{ $t('notFound.text') }}</p>
+    <router-link to="/" class="link-home">{{ $t('notFound.home') }}</router-link>
   </div>
 </template>
 

@@ -11,7 +11,7 @@
               />
               <path d="M16 10V22M10 16H22" stroke="white" stroke-width="2" stroke-linecap="round" />
             </svg>
-            <span>DisasterHelp</span>
+            <span>{{ $t('brand.name') }}</span>
           </router-link>
         </div>
 
@@ -19,64 +19,64 @@
           <h1>{{ errorFromQuery.title }}</h1>
           <p>{{ errorFromQuery.message }}</p>
           <div class="reset-password-links">
-            <router-link to="/login" class="btn btn-primary">Запросить новую ссылку</router-link>
-            <router-link to="/login" class="btn btn-outline">На логин</router-link>
+            <router-link to="/login" class="btn btn-primary">{{ $t('resetPassword.requestNew') }}</router-link>
+            <router-link to="/login" class="btn btn-outline">{{ $t('resetPassword.toLoginShort') }}</router-link>
           </div>
         </div>
         <div v-else-if="!tokenFromQuery" class="auth-form-wrapper">
-          <h1>Неверная ссылка</h1>
-          <p>Ссылка для сброса пароля отсутствует или устарела. Запросите новую.</p>
-          <router-link to="/login" class="btn btn-primary">На страницу входа</router-link>
+          <h1>{{ $t('resetPassword.invalidLinkTitle') }}</h1>
+          <p>{{ $t('resetPassword.invalidLinkText') }}</p>
+          <router-link to="/login" class="btn btn-primary">{{ $t('resetPassword.toLogin') }}</router-link>
         </div>
 
         <template v-else>
           <div v-if="success" class="auth-form-wrapper">
-            <div class="auth-message auth-message-success">{{ success }}</div>
-            <p>Теперь вы можете войти с новым паролем.</p>
-            <router-link to="/login" class="btn btn-primary">Войти</router-link>
+            <div class="auth-message auth-message-success">{{ trMsg(success) }}</div>
+            <p>{{ $t('resetPassword.successCanLogin') }}</p>
+            <router-link to="/login" class="btn btn-primary">{{ $t('auth.signIn') }}</router-link>
           </div>
 
           <div v-else class="auth-form-wrapper">
-            <h1>Новый пароль</h1>
-            <p>Введите новый пароль для вашего аккаунта.</p>
+            <h1>{{ $t('resetPassword.newPasswordTitle') }}</h1>
+            <p>{{ $t('resetPassword.newPasswordSubtitle') }}</p>
             <div v-if="errorMessage" class="auth-message auth-message-error">
-              {{ errorMessage }}
+              {{ trMsg(errorMessage) }}
             </div>
             <form class="auth-form" @submit.prevent="handleSubmit">
               <div class="form-group">
-                <label for="new-password">Новый пароль</label>
+                <label for="new-password">{{ $t('resetPassword.newPasswordLabel') }}</label>
                 <input
                   id="new-password"
                   v-model="form.password"
                   type="password"
                   class="form-control"
                   :class="{ 'is-invalid': errors.password }"
-                  placeholder="••••••••"
+                  :placeholder="$t('auth.passwordPlaceholder')"
                   required
                   autocomplete="new-password"
                 />
-                <span v-if="errors.password" class="form-error">{{ errors.password }}</span>
+                <span v-if="errors.password" class="form-error">{{ trMsg(errors.password) }}</span>
               </div>
               <div class="form-group">
-                <label for="new-password-confirm">Повторите пароль</label>
+                <label for="new-password-confirm">{{ $t('resetPassword.repeatPassword') }}</label>
                 <input
                   id="new-password-confirm"
                   v-model="form.passwordConfirm"
                   type="password"
                   class="form-control"
                   :class="{ 'is-invalid': errors.passwordConfirm }"
-                  placeholder="••••••••"
+                  :placeholder="$t('auth.passwordPlaceholder')"
                   required
                   autocomplete="new-password"
                 />
                 <span v-if="errors.passwordConfirm" class="form-error">{{
-                  errors.passwordConfirm
+                  trMsg(errors.passwordConfirm)
                 }}</span>
               </div>
-              <button type="submit" class="btn btn-primary btn-block">Сохранить пароль</button>
+              <button type="submit" class="btn btn-primary btn-block">{{ $t('resetPassword.savePassword') }}</button>
             </form>
             <p class="form-footer">
-              <router-link to="/login" class="link">Вернуться к входу</router-link>
+              <router-link to="/login" class="link">{{ $t('resetPassword.backToLogin') }}</router-link>
             </p>
           </div>
         </template>
@@ -88,10 +88,20 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import * as authApi from '../api/auth.js'
 import { withLoading } from '../stores/loading.js'
 import { useAuthStore } from '../stores/auth.js'
 import { trimValue, validatePassword, validatePasswordMatch } from '../utils/validation.js'
+
+const { t, te } = useI18n()
+
+function trMsg(msg) {
+  if (msg == null || msg === '') return ''
+  const s = String(msg)
+  if (te(s)) return t(s)
+  return s
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -103,14 +113,14 @@ const errorFromQuery = computed(() => {
   const err = route.query.error
   if (err === 'invalidToken') {
     return {
-      title: 'Недействительная ссылка',
-      message: 'Ссылка для сброса пароля недействительна или истекла. Запросите новую ссылку на странице входа («Забыли пароль?»).',
+      title: t('resetPassword.invalidTokenTitle'),
+      message: t('resetPassword.invalidTokenText'),
     }
   }
   if (err === 'server') {
     return {
-      title: 'Ошибка сервера',
-      message: 'Не удалось проверить ссылку. Попробуйте позже или запросите новую ссылку для сброса пароля.',
+      title: t('resetPassword.serverErrorTitle'),
+      message: t('resetPassword.serverErrorText'),
     }
   }
   return null
@@ -140,14 +150,14 @@ const handleSubmit = async () => {
     const result = await withLoading(() => authApi.resetPassword(tokenFromQuery.value, password))
     if (result.user && result.token) {
       authStore.login({ user: result.user, token: result.token })
-      success.value = 'Пароль успешно изменён.'
+      success.value = 'resetPassword.successChanged'
       router.push('/dashboard')
     } else {
-      success.value = 'Пароль успешно изменён. Войдите с новым паролем.'
+      success.value = 'resetPassword.successChangedLogin'
       router.push('/login')
     }
   } catch (error) {
-    errorMessage.value = error.message || 'Не удалось сохранить пароль. Ссылка могла устареть.'
+    errorMessage.value = error.message || 'resetPassword.saveError'
   }
 }
 </script>
@@ -177,6 +187,9 @@ const handleSubmit = async () => {
   text-decoration: underline;
 }
 .reset-password-links {
-  display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 </style>

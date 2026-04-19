@@ -1,20 +1,20 @@
 <template>
   <div>
-    <div class="back-row"><router-link to="/admin/requests" class="btn btn-secondary">← К списку</router-link></div>
-    <div v-if="loading" class="card">Загрузка…</div>
+    <div class="back-row"><router-link to="/admin/requests" class="btn btn-secondary">{{ $t('common.backToList') }}</router-link></div>
+    <div v-if="loading" class="card">{{ $t('common.loadingEllipsis') }}</div>
     <template v-else-if="request">
       <div class="card">
-        <h1 class="page-title">Заявка #{{ request.id }}</h1>
+        <h1 class="page-title">{{ $t('admin.requestTitle', { id: request.id }) }}</h1>
         <dl class="detail-list">
-          <div><dt>Заголовок</dt><dd>{{ request.title }}</dd></div>
-          <div><dt>Описание</dt><dd>{{ request.description || '—' }}</dd></div>
-          <div><dt>Статус</dt><dd><span class="badge">{{ request.status }}</span></dd></div>
-          <div><dt>Приоритет</dt><dd>{{ request.priority }}</dd></div>
-          <div><dt>Опубликовано</dt><dd>{{ request.isPublished ? 'Да' : 'Нет' }}</dd></div>
+          <div><dt>{{ $t('common.title') }}</dt><dd>{{ request.title }}</dd></div>
+          <div><dt>{{ $t('common.description') }}</dt><dd>{{ request.description || '—' }}</dd></div>
+          <div><dt>{{ $t('common.status') }}</dt><dd><span class="badge">{{ request.status }}</span></dd></div>
+          <div><dt>{{ $t('common.priority') }}</dt><dd>{{ request.priority }}</dd></div>
+          <div><dt>{{ $t('admin.publishedLabel') }}</dt><dd>{{ request.isPublished ? $t('common.yes') : $t('common.no') }}</dd></div>
         </dl>
       </div>
       <div class="card">
-        <h2 class="section-title">Действия</h2>
+        <h2 class="section-title">{{ $t('admin.actions') }}</h2>
         <div class="inline-row">
           <select v-model="statusSelect" class="form-control" style="max-width: 160px;">
             <option value="NEW">NEW</option>
@@ -22,25 +22,27 @@
             <option value="DONE">DONE</option>
             <option value="CANCELLED">CANCELLED</option>
           </select>
-          <button type="button" class="btn btn-primary" :disabled="actionLoading" @click="setStatus">Изменить статус</button>
+          <button type="button" class="btn btn-primary" :disabled="actionLoading" @click="setStatus">{{ $t('admin.changeStatus') }}</button>
           <template v-if="request.status !== 'DONE' && request.status !== 'CANCELLED'">
-            <button v-if="!request.isPublished" type="button" class="btn btn-primary" :disabled="actionLoading" @click="publish">Опубликовать</button>
-            <button v-else type="button" class="btn btn-secondary" :disabled="actionLoading" @click="unpublish">Снять с публикации</button>
+            <button v-if="!request.isPublished" type="button" class="btn btn-primary" :disabled="actionLoading" @click="publish">{{ $t('coordinatorRequests.publish') }}</button>
+            <button v-else type="button" class="btn btn-secondary" :disabled="actionLoading" @click="unpublish">{{ $t('admin.unpublish') }}</button>
           </template>
-          <button type="button" class="btn btn-danger" :disabled="actionLoading" @click="doDelete">Удалить заявку</button>
+          <button type="button" class="btn btn-danger" :disabled="actionLoading" @click="doDelete">{{ $t('admin.deleteRequest') }}</button>
           <span v-if="actionMessage" class="msg" :class="{ error: actionError }">{{ actionMessage }}</span>
         </div>
       </div>
     </template>
-    <div v-else class="card">Заявка не найдена</div>
+    <div v-else class="card">{{ $t('admin.requestNotFound') }}</div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { getRequest, patchRequestStatus, publishRequest, unpublishRequest, deleteRequest } from '../../api/requests.js'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const request = ref(null)
@@ -74,9 +76,9 @@ async function setStatus() {
   try {
     const data = await patchRequestStatus(request.value.id, statusSelect.value)
     if (data.request) request.value = data.request
-    actionMessage.value = data.message || 'Статус изменён'
+    actionMessage.value = data.message || t('admin.statusChanged')
   } catch (e) {
-    actionMessage.value = e.message || 'Ошибка'
+    actionMessage.value = e.message || t('common.error')
     actionError.value = true
   } finally {
     actionLoading.value = false
@@ -89,9 +91,9 @@ async function publish() {
   try {
     const data = await publishRequest(request.value.id)
     if (data.request) request.value = data.request
-    actionMessage.value = data.message || 'Опубликовано'
+    actionMessage.value = data.message || t('admin.publishedMsg')
   } catch (e) {
-    actionMessage.value = e.message || 'Ошибка'
+    actionMessage.value = e.message || t('common.error')
     actionError.value = true
   } finally {
     actionLoading.value = false
@@ -104,9 +106,9 @@ async function unpublish() {
   try {
     const data = await unpublishRequest(request.value.id)
     if (data.request) request.value = data.request
-    actionMessage.value = data.message || 'Снято с публикации'
+    actionMessage.value = data.message || t('admin.unpublishedMsg')
   } catch (e) {
-    actionMessage.value = e.message || 'Ошибка'
+    actionMessage.value = e.message || t('common.error')
     actionError.value = true
   } finally {
     actionLoading.value = false
@@ -114,13 +116,13 @@ async function unpublish() {
 }
 
 async function doDelete() {
-  if (!confirm('Удалить заявку?')) return
+  if (!confirm(t('admin.deleteRequestConfirm'))) return
   actionLoading.value = true
   try {
     await deleteRequest(request.value.id)
     router.push('/admin/requests')
   } catch (e) {
-    actionMessage.value = e.message || 'Ошибка'
+    actionMessage.value = e.message || t('common.error')
     actionError.value = true
   } finally {
     actionLoading.value = false

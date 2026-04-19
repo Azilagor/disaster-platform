@@ -1,45 +1,45 @@
 <template>
   <div>
-    <h1 class="page-title">Обзор</h1>
-    <div v-if="loading" class="card">Загрузка…</div>
+    <h1 class="page-title">{{ $t('admin.overview') }}</h1>
+    <div v-if="loading" class="card">{{ $t('common.loadingEllipsis') }}</div>
     <template v-else-if="overview">
       <div class="widget-grid">
         <div class="widget">
-          <div class="widget-title">Пользователей</div>
+          <div class="widget-title">{{ $t('admin.users') }}</div>
           <div class="widget-value">{{ overview.users.total }}</div>
-          <div class="widget-title" style="margin-top: 4px;">Не подтверждено: {{ overview.users.unverified }}</div>
+          <div class="widget-title" style="margin-top: 4px;">{{ $t('admin.unverified', { n: overview.users.unverified }) }}</div>
         </div>
         <div class="widget">
-          <div class="widget-title">Заявок</div>
+          <div class="widget-title">{{ $t('admin.requests') }}</div>
           <div class="widget-value">{{ overview.requests.total }}</div>
-          <div class="widget-title" style="margin-top: 4px;">Опубликовано: {{ overview.requests.published }}</div>
+          <div class="widget-title" style="margin-top: 4px;">{{ $t('admin.published', { n: overview.requests.published }) }}</div>
         </div>
         <div class="widget">
-          <div class="widget-title">Инцидентов</div>
+          <div class="widget-title">{{ $t('admin.incidents') }}</div>
           <div class="widget-value">{{ overview.incidents.total }}</div>
-          <div class="widget-title" style="margin-top: 4px;">Активных: {{ overview.incidents.active }}</div>
+          <div class="widget-title" style="margin-top: 4px;">{{ $t('admin.activeIncidents', { n: overview.incidents.active }) }}</div>
         </div>
       </div>
       <div class="card">
-        <h2 class="section-title">Пользователи по ролям</h2>
+        <h2 class="section-title">{{ $t('admin.usersByRole') }}</h2>
         <div class="stats-row">
-          <span>USER: <strong>{{ overview.users.byRole.USER ?? 0 }}</strong></span>
-          <span>VOLUNTEER: <strong>{{ overview.users.byRole.VOLUNTEER ?? 0 }}</strong></span>
-          <span>COORDINATOR: <strong>{{ overview.users.byRole.COORDINATOR ?? 0 }}</strong></span>
-          <span>ADMIN: <strong>{{ overview.users.byRole.ADMIN ?? 0 }}</strong></span>
+          <span>{{ $t('roles.USER') }}: <strong>{{ overview.users.byRole.USER ?? 0 }}</strong></span>
+          <span>{{ $t('roles.VOLUNTEER') }}: <strong>{{ overview.users.byRole.VOLUNTEER ?? 0 }}</strong></span>
+          <span>{{ $t('roles.COORDINATOR') }}: <strong>{{ overview.users.byRole.COORDINATOR ?? 0 }}</strong></span>
+          <span>{{ $t('roles.ADMIN') }}: <strong>{{ overview.users.byRole.ADMIN ?? 0 }}</strong></span>
         </div>
       </div>
       <div class="card">
-        <h2 class="section-title">Заявки по статусу</h2>
+        <h2 class="section-title">{{ $t('admin.requestsByStatus') }}</h2>
         <div class="stats-row">
-          <span>NEW: <strong>{{ overview.requests.byStatus.NEW ?? 0 }}</strong></span>
-          <span>IN_PROGRESS: <strong>{{ overview.requests.byStatus.IN_PROGRESS ?? 0 }}</strong></span>
-          <span>DONE: <strong>{{ overview.requests.byStatus.DONE ?? 0 }}</strong></span>
-          <span>CANCELLED: <strong>{{ overview.requests.byStatus.CANCELLED ?? 0 }}</strong></span>
+          <span>{{ $t('enums.requestStatus.NEW') }}: <strong>{{ overview.requests.byStatus.NEW ?? 0 }}</strong></span>
+          <span>{{ $t('enums.requestStatus.IN_PROGRESS') }}: <strong>{{ overview.requests.byStatus.IN_PROGRESS ?? 0 }}</strong></span>
+          <span>{{ $t('enums.requestStatus.DONE') }}: <strong>{{ overview.requests.byStatus.DONE ?? 0 }}</strong></span>
+          <span>{{ $t('enums.requestStatus.CANCELLED') }}: <strong>{{ overview.requests.byStatus.CANCELLED ?? 0 }}</strong></span>
         </div>
       </div>
     </template>
-    <div v-else class="card">Нет данных</div>
+    <div v-else class="card">{{ $t('common.noData') }}</div>
   </div>
 </template>
 

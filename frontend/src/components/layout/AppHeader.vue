@@ -10,16 +10,17 @@
             />
             <path d="M16 10V22M10 16H22" stroke="white" stroke-width="2" stroke-linecap="round" />
           </svg>
-          <span class="logo-text">DisasterHelp</span>
+          <span class="logo-text">{{ $t('brand.name') }}</span>
         </router-link>
         <ul class="nav-menu">
-          <li><router-link :to="{ path: '/', hash: '#features' }">Возможности</router-link></li>
+          <li><router-link :to="{ path: '/', hash: '#features' }">{{ $t('nav.features') }}</router-link></li>
           <li>
-            <router-link :to="{ path: '/', hash: '#how-it-works' }">Как это работает</router-link>
+            <router-link :to="{ path: '/', hash: '#how-it-works' }">{{ $t('nav.howItWorks') }}</router-link>
           </li>
-          <li><router-link :to="{ path: '/', hash: '#about' }">О платформе</router-link></li>
+          <li><router-link :to="{ path: '/', hash: '#about' }">{{ $t('nav.about') }}</router-link></li>
         </ul>
         <div class="nav-actions">
+          <LanguageSwitcher class="lang-in-header" />
           <template v-if="authStore.isAuthenticated">
             <router-link to="/profile" class="user-menu-link">
               <img
@@ -32,18 +33,18 @@
               />
               <span class="user-name">{{ authStore.userName }}</span>
             </router-link>
-            <router-link to="/profile" class="btn btn-secondary">Профиль</router-link>
+            <router-link to="/profile" class="btn btn-secondary">{{ $t('nav.profile') }}</router-link>
             <button
               type="button"
               class="btn btn-secondary"
               @click="authStore.logout(); $router.push('/')"
             >
-              Выйти
+              {{ $t('nav.logout') }}
             </button>
           </template>
           <template v-else>
-            <router-link to="/login" class="btn btn-secondary">Вход</router-link>
-            <router-link to="/register" class="btn btn-primary">Регистрация</router-link>
+            <router-link to="/login" class="btn btn-secondary">{{ $t('nav.login') }}</router-link>
+            <router-link to="/register" class="btn btn-primary">{{ $t('nav.register') }}</router-link>
           </template>
         </div>
       </nav>
@@ -53,11 +54,15 @@
 
 <script setup>
 import { useAuthStore } from '../../stores/auth.js'
+import LanguageSwitcher from '../LanguageSwitcher.vue'
 
 const authStore = useAuthStore()
 </script>
 
 <style scoped>
+.lang-in-header {
+  margin-right: 0.25rem;
+}
 .user-menu-link {
   display: flex;
   align-items: center;

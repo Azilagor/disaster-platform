@@ -2,31 +2,31 @@
   <div>
     <div class="topbar">
       <div class="topbar-left">
-        <h1>Мои заявки</h1>
-        <p class="text-muted">Заявки, созданные вами. GET /requests/my</p>
+        <h1>{{ $t('myRequests.title') }}</h1>
+        <p class="text-muted">{{ $t('myRequests.subtitle') }}</p>
       </div>
       <div class="topbar-right">
-        <router-link to="/create-request" class="btn btn-primary">Создать заявку</router-link>
+        <router-link to="/create-request" class="btn btn-primary">{{ $t('myRequests.create') }}</router-link>
       </div>
     </div>
 
-    <div v-if="loading" class="text-muted">Загрузка...</div>
+    <div v-if="loading" class="text-muted">{{ $t('common.loading') }}</div>
     <div v-else-if="error" class="auth-message auth-message-error">{{ error }}</div>
     <div v-else-if="!requests.length" class="empty-state">
-      <p>У вас пока нет заявок.</p>
-      <router-link to="/create-request" class="btn btn-primary">Создать первую заявку</router-link>
+      <p>{{ $t('myRequests.empty') }}</p>
+      <router-link to="/create-request" class="btn btn-primary">{{ $t('myRequests.createFirst') }}</router-link>
     </div>
     <div v-else class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Заголовок</th>
-            <th>Тип</th>
-            <th>Приоритет</th>
-            <th>Район</th>
-            <th>Статус</th>
-            <th>Публикация</th>
+            <th>{{ $t('common.idColumn') }}</th>
+            <th>{{ $t('myRequests.thTitle') }}</th>
+            <th>{{ $t('myRequests.thType') }}</th>
+            <th>{{ $t('myRequests.thPriority') }}</th>
+            <th>{{ $t('myRequests.thDistrict') }}</th>
+            <th>{{ $t('myRequests.thStatus') }}</th>
+            <th>{{ $t('myRequests.thPublished') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -34,16 +34,16 @@
           <tr v-for="r in requests" :key="r.id">
             <td>{{ r.id }}</td>
             <td>{{ r.title }}</td>
-            <td>{{ PROBLEM_TYPE_LABELS[r.problemType] || r.problemType }}</td>
-            <td>{{ PRIORITY_LABELS[r.priority] || r.priority }}</td>
-            <td>{{ DISTRICT_LABELS[r.district] || r.district }}</td>
-            <td>{{ REQUEST_STATUS_LABELS[r.status] || r.status }}</td>
+            <td>{{ $t('enums.problemType.' + r.problemType) }}</td>
+            <td>{{ $t('enums.priority.' + r.priority) }}</td>
+            <td>{{ $t('enums.district.' + r.district) }}</td>
+            <td>{{ $t('enums.requestStatus.' + r.status) }}</td>
             <td>
-              <span v-if="r.isPublished" class="badge badge-success">Опубликована</span>
-              <span v-else class="badge badge-secondary">Не опубликована</span>
+              <span v-if="r.isPublished" class="badge badge-success">{{ $t('myRequests.published') }}</span>
+              <span v-else class="badge badge-secondary">{{ $t('myRequests.notPublished') }}</span>
             </td>
             <td>
-              <router-link :to="'/map?request=' + r.id" class="btn btn-sm btn-outline">На карте</router-link>
+              <router-link :to="'/map?request=' + r.id" class="btn btn-sm btn-outline">{{ $t('myRequests.onMap') }}</router-link>
             </td>
           </tr>
         </tbody>
@@ -54,14 +54,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getMyRequests } from '../api/requests.js'
 import { withLoading } from '../stores/loading.js'
-import {
-  PRIORITY_LABELS,
-  PROBLEM_TYPE_LABELS,
-  DISTRICT_LABELS,
-  REQUEST_STATUS_LABELS,
-} from '../constants/requests.js'
+
+const { t } = useI18n()
 
 const requests = ref([])
 const loading = ref(true)
@@ -74,7 +71,7 @@ onMounted(async () => {
     const list = await withLoading(() => getMyRequests({ limit: 100 }))
     requests.value = list
   } catch (e) {
-    error.value = e.message || 'Не удалось загрузить заявки'
+    error.value = e.message || t('myRequests.loadError')
     requests.value = []
   } finally {
     loading.value = false

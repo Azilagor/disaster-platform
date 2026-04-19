@@ -28,62 +28,70 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /**
  * Валидация email
- * @returns {string|null} null если ОК, иначе текст ошибки
+ * @returns {string|null} null если ОК, иначе ключ i18n (validation.*)
  */
 export function validateEmail(email) {
   const v = trimValue(email)
-  if (!v) return 'Email обязателен'
-  if (!EMAIL_RE.test(v)) return 'Введите корректный email'
+  if (!v) return 'validation.emailRequired'
+  if (!EMAIL_RE.test(v)) return 'validation.emailInvalid'
   return null
 }
 
 /**
  * Валидация пароля: мин 8 символов, 1 заглавная, 1 цифра, 1 спецсимвол
- * @returns {string|null} null или текст ошибки
+ * @returns {string|null} null или ключ i18n
  */
 export function validatePassword(password) {
   const v = password == null ? '' : String(password)
-  if (!v.trim()) return 'Пароль обязателен'
-  if (v.length < 8) return 'Пароль должен быть не менее 8 символов'
-  if (!/[A-Z]/.test(v)) return 'Нужна хотя бы одна заглавная буква'
-  if (!/[0-9]/.test(v)) return 'Нужна хотя бы одна цифра'
-  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(v)) return 'Нужен хотя бы один спецсимвол'
+  if (!v.trim()) return 'validation.passwordRequired'
+  if (v.length < 8) return 'validation.passwordMinLength'
+  if (!/[A-Z]/.test(v)) return 'validation.passwordUppercase'
+  if (!/[0-9]/.test(v)) return 'validation.passwordDigit'
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(v)) return 'validation.passwordSpecial'
   return null
 }
 
 /**
  * Валидация телефона (базовая: цифры, плюс, скобки, пробелы, дефисы; мин. длина)
- * @returns {string|null} null или текст ошибки
+ * @returns {string|null} null или ключ i18n
  */
 export function validatePhone(phone) {
   const v = trimValue(phone)
-  if (!v) return 'Телефон обязателен'
+  if (!v) return 'validation.phoneRequired'
   const digits = v.replace(/\D/g, '')
-  if (digits.length < 10) return 'Введите корректный номер телефона'
+  if (digits.length < 10) return 'validation.phoneInvalid'
   return null
 }
 
 /**
  * Валидация имени/фамилии
  * @param {string} name - значение
- * @param {string} fieldName - например "Имя" или "Фамилия"
- * @returns {string|null} null или текст ошибки
+ * @param {'firstName' | 'lastName' | 'field'} fieldKind
+ * @returns {string|null} null или ключ i18n
  */
-export function validateName(name, fieldName = 'Поле') {
+export function validateName(name, fieldKind = 'field') {
   const v = trimValue(name)
-  if (!v) return `${fieldName} обязательно`
-  if (v.length < 2) return `${fieldName} должно быть не менее 2 символов`
+  if (!v) {
+    if (fieldKind === 'firstName') return 'validation.firstNameRequired'
+    if (fieldKind === 'lastName') return 'validation.lastNameRequired'
+    return 'validation.fieldRequired'
+  }
+  if (v.length < 2) {
+    if (fieldKind === 'firstName') return 'validation.firstNameMin'
+    if (fieldKind === 'lastName') return 'validation.lastNameMin'
+    return 'validation.fieldMin'
+  }
   return null
 }
 
 /**
  * Проверка совпадения паролей
- * @returns {string|null} null или "Пароли не совпадают"
+ * @returns {string|null} null или ключ i18n
  */
 export function validatePasswordMatch(password, confirmPassword) {
   const p = password == null ? '' : String(password)
   const c = confirmPassword == null ? '' : String(confirmPassword)
-  if (p !== c) return 'Пароли не совпадают'
+  if (p !== c) return 'validation.passwordsMismatch'
   return null
 }
 
@@ -94,9 +102,9 @@ export function validatePasswordMatch(password, confirmPassword) {
  */
 export function validateRegistrationForm(formData) {
   const errors = {}
-  const fn = validateName(formData.firstName, 'Имя')
+  const fn = validateName(formData.firstName, 'firstName')
   if (fn) errors.firstName = fn
-  const ln = validateName(formData.lastName, 'Фамилия')
+  const ln = validateName(formData.lastName, 'lastName')
   if (ln) errors.lastName = ln
   const em = validateEmail(formData.email)
   if (em) errors.email = em
@@ -106,7 +114,7 @@ export function validateRegistrationForm(formData) {
   if (pw) errors.password = pw
   const pm = validatePasswordMatch(formData.password, formData.passwordConfirm)
   if (pm) errors.passwordConfirm = pm
-  if (!trimValue(formData.role)) errors.role = 'Выберите роль'
+  if (!trimValue(formData.role)) errors.role = 'validation.roleRequired'
   return {
     valid: Object.keys(errors).length === 0,
     errors,
@@ -120,8 +128,8 @@ export function validateRegistrationForm(formData) {
  */
 export function validateProblemType(value) {
   const v = trimValue(value)
-  if (!v) return 'Выберите тип проблемы'
-  if (!ALLOWED_PROBLEM_TYPES.includes(v)) return 'Недопустимый тип проблемы'
+  if (!v) return 'validation.problemTypeRequired'
+  if (!ALLOWED_PROBLEM_TYPES.includes(v)) return 'validation.problemTypeInvalid'
   return null
 }
 
@@ -132,8 +140,8 @@ export function validateProblemType(value) {
  */
 export function validatePriority(value) {
   const v = trimValue(value)
-  if (!v) return 'Выберите приоритет'
-  if (!ALLOWED_PRIORITIES.includes(v)) return 'Недопустимый приоритет'
+  if (!v) return 'validation.priorityRequired'
+  if (!ALLOWED_PRIORITIES.includes(v)) return 'validation.priorityInvalid'
   return null
 }
 
@@ -144,32 +152,43 @@ export function validatePriority(value) {
  */
 export function validateDistrict(value) {
   const v = trimValue(value)
-  if (!v) return 'Выберите район'
-  if (!ALLOWED_DISTRICTS.includes(v)) return 'Недопустимый район'
+  if (!v) return 'validation.districtRequired'
+  if (!ALLOWED_DISTRICTS.includes(v)) return 'validation.districtInvalid'
   return null
 }
 
 /**
  * Валидация заголовка заявки (по API: 5–200 символов)
  * @param {string} value
- * @returns {string|null} null если ОК, иначе текст ошибки
+ * @returns {string|null} null если ОК, иначе ключ i18n
  */
 export function validateRequestTitle(value) {
   const v = trimValue(value)
-  if (!v) return 'Заголовок обязателен'
-  if (v.length < 5) return 'Заголовок: от 5 до 200 символов'
-  if (v.length > 200) return 'Заголовок: от 5 до 200 символов'
+  if (!v) return 'validation.titleRequired'
+  if (v.length < 5) return 'validation.titleLength'
+  if (v.length > 200) return 'validation.titleLength'
   return null
 }
 
 /**
  * Валидация описания заявки (по API: минимум 50 символов)
  * @param {string} value
- * @returns {string|null} null если ОК, иначе текст ошибки
+ * @returns {string|null} null если ОК, иначе ключ i18n
  */
 export function validateRequestDescription(value) {
   const v = trimValue(value)
-  if (!v) return 'Описание обязательно'
-  if (v.length < 50) return 'Описание должно быть минимум 50 символов'
+  if (!v) return 'validation.descriptionRequired'
+  if (v.length < 50) return 'validation.descriptionMin'
+  return null
+}
+
+/**
+ * Обязательный адрес (форма создания заявки)
+ * @param {string} value
+ * @returns {string|null}
+ */
+export function validateRequiredAddress(value) {
+  const v = trimValue(value)
+  if (!v) return 'validation.addressRequired'
   return null
 }

@@ -1,27 +1,27 @@
 <template>
   <div>
-    <h1 class="page-title">Пользователи</h1>
+    <h1 class="page-title">{{ $t('admin.usersTitle') }}</h1>
     <div class="card">
       <div class="filters-row">
-        <input v-model="filters.search" type="text" class="form-control" placeholder="Поиск" style="max-width: 220px;" @input="debounceLoad" />
+        <input v-model="filters.search" type="text" class="form-control" :placeholder="$t('common.search')" style="max-width: 220px;" @input="debounceLoad" />
         <select v-model="filters.role" class="form-control" style="max-width: 140px;" @change="load">
-          <option value="">Все роли</option>
+          <option value="">{{ $t('admin.allRoles') }}</option>
           <option value="USER">USER</option>
           <option value="VOLUNTEER">VOLUNTEER</option>
           <option value="COORDINATOR">COORDINATOR</option>
           <option value="ADMIN">ADMIN</option>
         </select>
-        <button type="button" class="btn btn-secondary" @click="load">Обновить</button>
+        <button type="button" class="btn btn-secondary" @click="load">{{ $t('common.refresh') }}</button>
       </div>
-      <div v-if="loading" class="table-wrap">Загрузка…</div>
+      <div v-if="loading" class="table-wrap">{{ $t('common.loadingEllipsis') }}</div>
       <div v-else class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Имя</th>
-              <th>Email</th>
-              <th>Роль</th>
+              <th>{{ $t('common.idColumn') }}</th>
+              <th>{{ $t('volunteers.thName') }}</th>
+              <th>{{ $t('common.email') }}</th>
+              <th>{{ $t('auth.role') }}</th>
               <th></th>
             </tr>
           </thead>
@@ -31,12 +31,12 @@
               <td>{{ [u.firstName, u.lastName].filter(Boolean).join(' ') || '—' }}</td>
               <td>{{ u.email }}</td>
               <td><span class="badge">{{ u.role }}</span></td>
-              <td><router-link :to="`/admin/users/${u.id}`" class="btn btn-sm btn-secondary">Открыть</router-link></td>
+              <td><router-link :to="`/admin/users/${u.id}`" class="btn btn-sm btn-secondary">{{ $t('common.open') }}</router-link></td>
             </tr>
           </tbody>
         </table>
-        <p v-if="!items.length && !loading" class="empty-msg">Нет пользователей</p>
-        <p class="total-msg">Всего: {{ total }}</p>
+        <p v-if="!items.length && !loading" class="empty-msg">{{ $t('admin.emptyUsers') }}</p>
+        <p class="total-msg">{{ $t('common.total', { n: total }) }}</p>
       </div>
     </div>
   </div>
