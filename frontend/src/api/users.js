@@ -36,6 +36,15 @@ export async function setUserRole(id, role) {
   return parseJsonResponse(res)
 }
 
+/** Админ: задать новый пароль пользователю. POST /users/:id/reset-password */
+export async function resetUserPasswordAsAdmin(userId, newPassword) {
+  const res = await fetchWithAuth(`${USERS}/${userId}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ newPassword }),
+  })
+  return parseJsonResponse(res)
+}
+
 export async function deleteUser(id) {
   const res = await fetchWithAuth(`${USERS}/${id}`, { method: 'DELETE' })
   return parseJsonResponse(res)

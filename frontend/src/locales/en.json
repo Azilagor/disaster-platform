@@ -336,7 +336,11 @@
       "SHELTER": "Shelter",
       "REPAIR": "Repairs and equipment",
       "PSYCHOLOGICAL": "Psychological support"
-    }
+    },
+    "mapPointLabel": "Location on map",
+    "mapOptional": "(optional)",
+    "addressFromMapBadge": "From map",
+    "filledFromProfile": "Contact details were filled from your profile. Edit if needed."
   },
   "resetPassword": {
     "requestNew": "Request a new link",
@@ -386,7 +390,16 @@
     "respond": "Respond",
     "respondLoading": "...",
     "respondError": "Could not respond",
-    "unnamedRequest": "Request"
+    "unnamedRequest": "Request",
+    "landmark": "Landmark",
+    "districtLabel": "District",
+    "peopleNeed": "People in need",
+    "peopleSuffix": "pers.",
+    "volunteersCount": "Volunteers",
+    "weatherNow": "Weather now — {city}",
+    "feelsLike": "feels like {n}°C",
+    "weatherLine": "{desc} · 💨 {wind} m/s · 💧 {humidity}%",
+    "windUnit": "m/s"
   },
   "myRequests": {
     "title": "My requests",
@@ -436,7 +449,16 @@
     "publishError": "Publish error",
     "unpublishError": "Unpublish error",
     "statusError": "Status change error",
-    "assignError": "Assignment error"
+    "assignError": "Assignment error",
+    "viewTable": "Table",
+    "viewKanban": "Kanban",
+    "kanbanNew": "New",
+    "kanbanInProgress": "In progress",
+    "kanbanDone": "Done",
+    "kanbanCancelled": "Cancelled",
+    "kanbanEmpty": "No requests",
+    "assigningShort": "...",
+    "savingEdit": "Saving..."
   },
   "volunteers": {
     "title": "Volunteers",
@@ -594,7 +616,35 @@
       "deleteConfirm": "Delete this user?",
       "notFound": "User not found",
       "saved": "Saved",
-      "roleChanged": "Role updated"
+      "roleChanged": "Role updated",
+      "editData": "Edit details",
+      "saveChanges": "Save changes",
+      "saving": "Saving...",
+      "passwordTitle": "Reset password",
+      "passwordHint": "Set a new password for this user. At least 8 characters.",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm",
+      "passwordPlaceholder": "At least 8 characters",
+      "repeatPasswordPlaceholder": "Repeat password",
+      "passwordMismatch": "Passwords do not match",
+      "setPassword": "Set password",
+      "passwordChanged": "Password updated",
+      "togglePassword": "Show or hide password",
+      "deleteTitle": "Delete user",
+      "deleteIntro": "This cannot be undone. Related data will be removed:",
+      "deleteCascadeUser": "User account",
+      "deleteCascadeRequests": "All requests created ({count})",
+      "deleteCascadeVolunteer": "All volunteer assignments ({count})",
+      "deleteCascadeTokens": "Verification and password-reset tokens",
+      "deleteBtn": "Delete user",
+      "deleteConfirmPrompt": "Delete {name} ({email})?",
+      "deleteConfirmIrreversible": "This action cannot be undone.",
+      "deleteTypeEmail": "Type the user's email to confirm:",
+      "deleteConfirmBtn": "Confirm deletion",
+      "deleting": "Deleting...",
+      "emailVerified": "✓ Email verified",
+      "emailNotVerified": "✗ Email not verified",
+      "idLabel": "ID"
     },
     "incidentForm": {
       "newTitle": "New incident",

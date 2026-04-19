@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
 
+const bcrypt = require("bcryptjs");
 const prisma = require("../prismaClient");
 const { auth, allowRoles } = require("../middleware/auth");
+const validatePassword = require("../utils/validatePassword");
 
 const ALLOWED_ROLES = ["USER", "VOLUNTEER", "COORDINATOR", "ADMIN"];
 
@@ -379,6 +381,37 @@ router.patch("/:id/role", auth, allowRoles("ADMIN"), async (req, res) => {
     return res.json({ message: `Роль изменена на ${rv.value}`, user: updated });
   } catch (err) {
     console.error("PATCH /users/:id/role error:", err);
+    return res.status(500).json({ message: "Ошибка сервера" });
+  }
+});
+
+// POST /users/:id/reset-password — администратор задаёт новый пароль пользователю
+router.post("/:id/reset-password", auth, allowRoles("ADMIN"), async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    const { newPassword } = req.body || {};
+    if (!userId || userId <= 0)
+      return res.status(400).json({ message: "Неверный id" });
+    if (!newPassword)
+      return res.status(400).json({ message: "newPassword обязателен" });
+
+    const pwdError = validatePassword(newPassword);
+    if (pwdError) return res.status(400).json({ message: pwdError });
+
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
+    if (!target) return res.status(404).json({ message: "Пользователь не найден" });
+    if (target.role === "ADMIN" && userId !== req.user.id) {
+      return res.status(400).json({ message: "Нельзя менять пароль другого администратора" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+    return res.json({ message: "Пароль изменён" });
+  } catch (err) {
+    console.error("POST /users/:id/reset-password error:", err);
     return res.status(500).json({ message: "Ошибка сервера" });
   }
 });

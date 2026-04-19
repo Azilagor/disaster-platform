@@ -5,18 +5,42 @@
         <h1>{{ $t('coordinator.title') }}</h1>
         <p class="text-muted">{{ $t('coordinator.subtitle') }}</p>
       </div>
+      <div class="topbar-right">
+        <div class="view-toggle">
+          <button
+            type="button"
+            class="view-btn"
+            :class="{ active: viewMode === 'table' }"
+            :title="$t('coordinator.viewTable')"
+            @click="viewMode = 'table'"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18M3 15h18M9 3v18" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="view-btn"
+            :class="{ active: viewMode === 'kanban' }"
+            :title="$t('coordinator.viewKanban')"
+            @click="viewMode = 'kanban'"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="5" height="18" rx="1" />
+              <rect x="10" y="3" width="5" height="12" rx="1" />
+              <rect x="17" y="3" width="4" height="15" rx="1" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="toolbar">
       <div class="search-box">
-        <input
-          v-model="filters.search"
-          type="text"
-          :placeholder="$t('coordinator.searchPh')"
-          class="form-control"
-        />
+        <input v-model="filters.search" type="text" :placeholder="$t('coordinator.searchPh')" class="form-control" />
       </div>
-      <select v-model="filters.status" class="form-control">
+      <select v-if="viewMode === 'table'" v-model="filters.status" class="form-control">
         <option value="">{{ $t('coordinator.allStatuses') }}</option>
         <option v-for="s in ALLOWED_STATUSES" :key="s" :value="s">{{ requestStatusLabels[s] }}</option>
       </select>
@@ -35,69 +59,149 @@
       <button type="button" class="btn btn-primary" @click="loadRequests">{{ $t('common.refresh') }}</button>
     </div>
 
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>{{ $t('myRequests.thTitle') }}</th>
-            <th>{{ $t('myRequests.thType') }}</th>
-            <th>{{ $t('myRequests.thPriority') }}</th>
-            <th>{{ $t('myRequests.thDistrict') }}</th>
-            <th>{{ $t('myRequests.thStatus') }}</th>
-            <th>{{ $t('myRequests.thPublished') }}</th>
-            <th>{{ $t('coordinator.thActions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in requests" :key="r.id">
-            <td>{{ r.id }}</td>
-            <td>{{ r.title }}</td>
-            <td>{{ problemTypeLabels[r.problemType] || r.problemType }}</td>
-            <td>{{ priorityLabels[r.priority] || r.priority }}</td>
-            <td>{{ districtLabels[r.district] || r.district }}</td>
-            <td>
-              <select
-                :value="r.status"
-                class="form-control form-control-sm"
-                @change="patchRequestStatus(r.id, $event.target.value)"
-              >
-                <option :value="r.status">{{ requestStatusLabels[r.status] }}</option>
-                <option
-                  v-for="next in (STATUS_TRANSITIONS[r.status] || [])"
-                  :key="next"
-                  :value="next"
+    <template v-if="viewMode === 'table'">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>{{ $t('myRequests.thTitle') }}</th>
+              <th>{{ $t('myRequests.thType') }}</th>
+              <th>{{ $t('myRequests.thPriority') }}</th>
+              <th>{{ $t('myRequests.thDistrict') }}</th>
+              <th>{{ $t('myRequests.thStatus') }}</th>
+              <th>{{ $t('myRequests.thPublished') }}</th>
+              <th>{{ $t('coordinator.thActions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in requests" :key="r.id">
+              <td class="td-id">{{ r.id }}</td>
+              <td>{{ r.title }}</td>
+              <td>{{ problemTypeLabels[r.problemType] || r.problemType }}</td>
+              <td>
+                <span class="priority-chip" :class="r.priority?.toLowerCase()">
+                  {{ priorityLabels[r.priority] || r.priority }}
+                </span>
+              </td>
+              <td>{{ districtLabels[r.district] || r.district }}</td>
+              <td>
+                <select
+                  :value="r.status"
+                  class="form-control form-control-sm"
+                  @change="patchRequestStatus(r.id, $event.target.value)"
                 >
-                  {{ requestStatusLabels[next] }}
-                </option>
-              </select>
-            </td>
-            <td>
-              <span v-if="r.isPublished" class="badge badge-success">{{ $t('myRequests.published') }}</span>
-              <span v-else class="badge badge-secondary">{{ $t('myRequests.notPublished') }}</span>
-            </td>
-            <td class="actions-cell">
-              <button type="button" class="btn btn-sm btn-outline" @click="openEditModal(r)">{{ $t('coordinator.edit') }}</button>
-              <template v-if="r.isPublished">
-                <button type="button" class="btn btn-sm btn-secondary" @click="unpublishRequest(r.id)">{{
-                  $t('coordinator.unpublish')
-                }}</button>
-              </template>
-              <template v-else>
-                <button type="button" class="btn btn-sm btn-primary" @click="publishRequest(r.id)">{{
-                  $t('coordinator.publish')
-                }}</button>
-              </template>
-              <button type="button" class="btn btn-sm btn-outline" @click="openAssignModal(r)">{{ $t('coordinator.assign') }}</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-if="loading" class="text-muted">{{ $t('dashboard.loadingShort') }}</p>
-      <p v-else-if="!requests.length" class="text-muted">{{ $t('coordinator.noRequests') }}</p>
-    </div>
+                  <option :value="r.status">{{ requestStatusLabels[r.status] }}</option>
+                  <option v-for="next in (STATUS_TRANSITIONS[r.status] || [])" :key="next" :value="next">
+                    {{ requestStatusLabels[next] }}
+                  </option>
+                </select>
+              </td>
+              <td>
+                <span v-if="r.isPublished" class="badge badge-success">{{ $t('myRequests.published') }}</span>
+                <span v-else class="badge badge-secondary">{{ $t('myRequests.notPublished') }}</span>
+              </td>
+              <td class="actions-cell">
+                <button type="button" class="btn btn-sm btn-outline" @click="openEditModal(r)">{{ $t('coordinator.edit') }}</button>
+                <button v-if="r.isPublished" type="button" class="btn btn-sm btn-secondary" @click="doUnpublish(r.id)">
+                  {{ $t('coordinator.unpublish') }}
+                </button>
+                <button v-else type="button" class="btn btn-sm btn-primary" @click="doPublish(r.id)">
+                  {{ $t('coordinator.publish') }}
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" @click="openAssignModal(r)">{{ $t('coordinator.assign') }}</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="loading" class="text-muted mt-2">{{ $t('dashboard.loadingShort') }}</p>
+        <p v-else-if="!requests.length" class="text-muted mt-2">{{ $t('coordinator.noRequests') }}</p>
+      </div>
+    </template>
 
-    <!-- Assign modal -->
+    <template v-else>
+      <div v-if="loading" class="text-muted mt-2">{{ $t('dashboard.loadingShort') }}</div>
+      <div v-else class="kanban-board">
+        <div
+          v-for="col in kanbanColumns"
+          :key="col.status"
+          class="kanban-col"
+          :class="'kanban-col--' + col.status.toLowerCase()"
+        >
+          <div class="kanban-col-header">
+            <div class="kanban-col-title">
+              <span class="kanban-col-dot" :class="'dot--' + col.status.toLowerCase()"></span>
+              {{ col.label }}
+            </div>
+            <span class="kanban-col-count">{{ col.items.length }}</span>
+          </div>
+          <div class="kanban-cards">
+            <div
+              v-for="r in col.items"
+              :key="r.id"
+              class="kanban-card"
+              :class="'kanban-card--' + (r.priority || 'medium').toLowerCase()"
+            >
+              <div class="kanban-card-meta">
+                <span class="priority-chip" :class="r.priority?.toLowerCase()">
+                  {{ priorityLabels[r.priority] || r.priority }}
+                </span>
+                <span class="kc-type">{{ problemTypeLabels[r.problemType] || r.problemType }}</span>
+              </div>
+              <div class="kanban-card-title">{{ r.title }}</div>
+              <div class="kanban-card-info">
+                <span>📍 {{ districtLabels[r.district] || r.district }}</span>
+                <span v-if="r.peopleCount > 1">👥 {{ r.peopleCount }}</span>
+              </div>
+              <div v-if="r.volunteers?.length" class="kanban-card-volunteers">
+                <span
+                  v-for="v in r.volunteers.slice(0, 3)"
+                  :key="v.volunteer.id"
+                  class="vol-avatar"
+                  :title="v.volunteer.firstName + ' ' + v.volunteer.lastName"
+                >
+                  {{ v.volunteer.firstName?.[0] }}{{ v.volunteer.lastName?.[0] }}
+                </span>
+                <span v-if="r.volunteers.length > 3" class="vol-more">+{{ r.volunteers.length - 3 }}</span>
+              </div>
+              <div class="kanban-card-pub">
+                <span v-if="r.isPublished" class="badge badge-success">{{ $t('myRequests.published') }}</span>
+                <span v-else class="badge badge-secondary">{{ $t('myRequests.notPublished') }}</span>
+              </div>
+              <div class="kanban-card-actions">
+                <template v-if="STATUS_TRANSITIONS[r.status]?.length">
+                  <button
+                    v-for="next in STATUS_TRANSITIONS[r.status]"
+                    :key="next"
+                    type="button"
+                    class="kc-btn kc-btn-status"
+                    :class="'kc-btn--' + next.toLowerCase()"
+                    :disabled="movingId === r.id"
+                    @click="patchRequestStatus(r.id, next)"
+                  >
+                    {{ STATUS_ARROWS[next] }} {{ requestStatusLabels[next] }}
+                  </button>
+                </template>
+                <div class="kc-btn-row">
+                  <button v-if="!r.isPublished" type="button" class="kc-btn kc-btn-publish" @click="doPublish(r.id)">
+                    {{ $t('coordinator.publish') }}
+                  </button>
+                  <button v-else type="button" class="kc-btn kc-btn-unpublish" @click="doUnpublish(r.id)">
+                    {{ $t('coordinator.unpublish') }}
+                  </button>
+                  <button type="button" class="kc-btn kc-btn-assign" @click="openAssignModal(r)">
+                    {{ $t('coordinator.assign') }}
+                  </button>
+                  <button type="button" class="kc-btn kc-btn-edit" @click="openEditModal(r)">✏️</button>
+                </div>
+              </div>
+            </div>
+            <div v-if="!col.items.length" class="kanban-empty">{{ $t('coordinator.kanbanEmpty') }}</div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <div v-if="assignModalRequest" class="modal" @click.self="assignModalRequest = null">
       <div class="modal-overlay"></div>
       <div class="modal-content">
@@ -108,24 +212,22 @@
           </button>
         </div>
         <div class="modal-body">
-          <div class="volunteer-search mb-3">
-            <input
-              v-model="volunteerSearch"
-              type="text"
-              class="form-control"
-              :placeholder="$t('coordinator.volunteerSearchPh')"
-            />
+          <div class="mb-3">
+            <input v-model="volunteerSearch" type="text" class="form-control" :placeholder="$t('coordinator.volunteerSearchPh')" />
           </div>
           <ul class="volunteer-list">
             <li v-for="v in volunteerList" :key="v.id" class="volunteer-item">
-              <span>{{ v.firstName }} {{ v.lastName }}</span>
+              <div class="vol-info">
+                <span class="vol-name">{{ v.firstName }} {{ v.lastName }}</span>
+                <span v-if="v.district" class="vol-district">{{ districtLabels[v.district] || v.district }}</span>
+              </div>
               <button
                 type="button"
                 class="btn btn-sm btn-primary"
                 :disabled="assigningId === v.id"
                 @click="assignVolunteer(assignModalRequest.id, v.id)"
               >
-                {{ $t('coordinator.assignBtn') }}
+                {{ assigningId === v.id ? $t('coordinator.assigningShort') : $t('coordinator.assignBtn') }}
               </button>
             </li>
           </ul>
@@ -138,7 +240,6 @@
       </div>
     </div>
 
-    <!-- Edit request modal -->
     <div v-if="editModalRequest" class="modal" @click.self="editModalRequest = null">
       <div class="modal-overlay"></div>
       <div class="modal-content modal-content-wide">
@@ -209,7 +310,9 @@
             </div>
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" @click="editModalRequest = null">{{ $t('common.cancel') }}</button>
-              <button type="submit" class="btn btn-primary" :disabled="editSaving">{{ $t('coordinator.save') }}</button>
+              <button type="submit" class="btn btn-primary" :disabled="editSaving">
+                {{ editSaving ? $t('coordinator.savingEdit') : $t('coordinator.save') }}
+              </button>
             </div>
           </form>
         </div>
@@ -256,8 +359,18 @@ const requestStatusLabels = computed(() =>
   Object.fromEntries(ALLOWED_STATUSES.map((c) => [c, lb.requestStatus(c)]))
 )
 
+const STATUS_ARROWS = {
+  NEW: '↩',
+  IN_PROGRESS: '▶',
+  DONE: '✅',
+  CANCELLED: '✖',
+}
+
+const viewMode = ref('table')
 const loading = ref(false)
 const requests = ref([])
+const movingId = ref(null)
+
 const filters = reactive({
   status: '',
   priority: '',
@@ -265,23 +378,44 @@ const filters = reactive({
   district: '',
   search: '',
   page: 1,
-  limit: 20,
+  limit: 100,
+})
+
+const kanbanColumns = computed(() => {
+  const search = filters.search.trim().toLowerCase()
+  const cols = [
+    { status: 'NEW', label: t('coordinator.kanbanNew') },
+    { status: 'IN_PROGRESS', label: t('coordinator.kanbanInProgress') },
+    { status: 'DONE', label: t('coordinator.kanbanDone') },
+    { status: 'CANCELLED', label: t('coordinator.kanbanCancelled') },
+  ]
+  return cols.map((col) => ({
+    ...col,
+    items: requests.value.filter((r) => {
+      if (r.status !== col.status) return false
+      if (search && !r.title.toLowerCase().includes(search) && !r.address?.toLowerCase().includes(search)) return false
+      if (filters.priority && r.priority !== filters.priority) return false
+      if (filters.problemType && r.problemType !== filters.problemType) return false
+      if (filters.district && r.district !== filters.district) return false
+      return true
+    }),
+  }))
 })
 
 async function loadRequests() {
   loading.value = true
   try {
     const params = {}
-    if (filters.status) params.status = filters.status
     if (filters.priority) params.priority = filters.priority
     if (filters.problemType) params.problemType = filters.problemType
     if (filters.district) params.district = filters.district
     if (filters.search) params.search = filters.search
-    params.page = filters.page
-    params.limit = filters.limit
+    if (viewMode.value === 'table' && filters.status) params.status = filters.status
+    params.page = 1
+    params.limit = viewMode.value === 'kanban' ? 200 : filters.limit
     const data = await withLoading(() => getRequests(params))
     requests.value = data.items ?? []
-  } catch (e) {
+  } catch {
     requests.value = []
   } finally {
     loading.value = false
@@ -290,11 +424,13 @@ async function loadRequests() {
 
 watch(
   () => [filters.status, filters.priority, filters.problemType, filters.district, filters.search],
-  () => { loadRequests() },
+  () => loadRequests(),
   { immediate: true }
 )
 
-async function publishRequest(id) {
+watch(viewMode, () => loadRequests())
+
+async function doPublish(id) {
   try {
     await withLoading(() => apiPublishRequest(id))
     loadRequests()
@@ -303,7 +439,7 @@ async function publishRequest(id) {
   }
 }
 
-async function unpublishRequest(id) {
+async function doUnpublish(id) {
   try {
     await withLoading(() => apiUnpublishRequest(id))
     loadRequests()
@@ -313,11 +449,14 @@ async function unpublishRequest(id) {
 }
 
 async function patchRequestStatus(id, status) {
+  movingId.value = id
   try {
     await withLoading(() => apiPatchRequestStatus(id, status))
     loadRequests()
   } catch (e) {
     alert(e.message || t('coordinator.statusError'))
+  } finally {
+    movingId.value = null
   }
 }
 
@@ -341,7 +480,7 @@ async function loadVolunteers() {
   try {
     const data = await getVolunteers({ search: volunteerSearch.value, limit: 50 })
     volunteerList.value = data.items ?? []
-  } catch (e) {
+  } catch {
     volunteerList.value = []
   } finally {
     volunteersLoading.value = false
@@ -372,31 +511,35 @@ const editError = ref('')
 async function openEditModal(request) {
   editModalRequest.value = request
   editError.value = ''
-  editForm.title = request.title ?? ''
-  editForm.description = request.description ?? ''
-  editForm.priority = request.priority ?? 'MEDIUM'
-  editForm.problemType = request.problemType ?? 'MEDICAL'
-  editForm.peopleCount = request.peopleCount ?? 1
-  editForm.address = request.address ?? ''
-  editForm.district = request.district ?? 'ALMALYNSKIY'
-  editForm.landmark = request.landmark ?? ''
-  editForm.contactName = request.contactName ?? ''
-  editForm.contactPhone = request.contactPhone ?? ''
-  editForm.additionalInfo = request.additionalInfo ?? ''
+  Object.assign(editForm, {
+    title: request.title ?? '',
+    description: request.description ?? '',
+    priority: request.priority ?? 'MEDIUM',
+    problemType: request.problemType ?? 'MEDICAL',
+    peopleCount: request.peopleCount ?? 1,
+    address: request.address ?? '',
+    district: request.district ?? 'ALMALYNSKIY',
+    landmark: request.landmark ?? '',
+    contactName: request.contactName ?? '',
+    contactPhone: request.contactPhone ?? '',
+    additionalInfo: request.additionalInfo ?? '',
+  })
   try {
     const full = await getRequest(request.id)
     editModalRequest.value = full
-    editForm.title = full.title ?? ''
-    editForm.description = full.description ?? ''
-    editForm.priority = full.priority ?? 'MEDIUM'
-    editForm.problemType = full.problemType ?? 'MEDICAL'
-    editForm.peopleCount = full.peopleCount ?? 1
-    editForm.address = full.address ?? ''
-    editForm.district = full.district ?? 'ALMALYNSKIY'
-    editForm.landmark = full.landmark ?? ''
-    editForm.contactName = full.contactName ?? ''
-    editForm.contactPhone = full.contactPhone ?? ''
-    editForm.additionalInfo = full.additionalInfo ?? ''
+    Object.assign(editForm, {
+      title: full.title ?? '',
+      description: full.description ?? '',
+      priority: full.priority ?? 'MEDIUM',
+      problemType: full.problemType ?? 'MEDICAL',
+      peopleCount: full.peopleCount ?? 1,
+      address: full.address ?? '',
+      district: full.district ?? 'ALMALYNSKIY',
+      landmark: full.landmark ?? '',
+      contactName: full.contactName ?? '',
+      contactPhone: full.contactPhone ?? '',
+      additionalInfo: full.additionalInfo ?? '',
+    })
   } catch (e) {
     editError.value = e.message || t('coordinator.loadEditError')
   }
@@ -446,6 +589,44 @@ async function assignVolunteer(requestId, volunteerId) {
 </script>
 
 <style scoped>
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+.topbar-right {
+  flex-shrink: 0;
+}
+.view-toggle {
+  display: flex;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.view-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+.view-btn.active {
+  background: #fff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -453,29 +634,401 @@ async function assignVolunteer(requestId, volunteerId) {
   margin-bottom: 1rem;
   align-items: center;
 }
-.search-box input { min-width: 180px; }
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th,
-.data-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #eee; }
-.data-table th { font-weight: 600; }
-.actions-cell { white-space: nowrap; }
-.actions-cell .btn { margin-right: 0.25rem; }
-.badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85em; }
-.badge-success { background: #d4edda; color: #155724; }
-.badge-secondary { background: #e2e3e5; color: #383d41; }
-.modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; }
-.modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
-.modal-content { position: relative; background: #fff; border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow: auto; }
-.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; }
-.modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
-.modal-body { padding: 1rem; }
-.modal-footer { padding: 1rem; border-top: 1px solid #eee; }
-.volunteer-list { list-style: none; padding: 0; margin: 0; }
-.volunteer-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; }
-.mb-3 { margin-bottom: 1rem; }
-.modal-content-wide { max-width: 560px; }
-.edit-request-form .form-group { margin-bottom: 1rem; }
-.edit-request-form .form-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; }
-.edit-request-form .form-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.search-box input {
+  min-width: 180px;
+}
+.text-muted {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+.mt-2 {
+  margin-top: 0.5rem;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table th {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+.data-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.9rem;
+}
+.td-id {
+  color: #9ca3af;
+  font-size: 0.82rem;
+}
+.actions-cell {
+  white-space: nowrap;
+}
+.actions-cell .btn {
+  margin-right: 0.25rem;
+}
+.priority-chip {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.priority-chip.critical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.priority-chip.high {
+  background: #ffedd5;
+  color: #9a3412;
+}
+.priority-chip.medium {
+  background: #fef9c3;
+  color: #854d0e;
+}
+.priority-chip.low {
+  background: #dcfce7;
+  color: #166534;
+}
+.badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
+.badge-success {
+  background: #d4edda;
+  color: #155724;
+}
+.badge-secondary {
+  background: #e2e3e5;
+  color: #383d41;
+}
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .kanban-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .kanban-board {
+    grid-template-columns: 1fr;
+  }
+}
+.kanban-col {
+  background: #f8fafc;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  min-height: 200px;
+}
+.kanban-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+}
+.kanban-col-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.kanban-col-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot--new {
+  background: #3b82f6;
+}
+.dot--in_progress {
+  background: #f59e0b;
+}
+.dot--done {
+  background: #10b981;
+}
+.dot--cancelled {
+  background: #9ca3af;
+}
+.kanban-col-count {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 11px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.kanban-cards {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.kanban-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.85rem;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.15s;
+}
+.kanban-card:hover {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+.kanban-card--critical {
+  border-left-color: #dc2626;
+}
+.kanban-card--high {
+  border-left-color: #ea580c;
+}
+.kanban-card--medium {
+  border-left-color: #d97706;
+}
+.kanban-card--low {
+  border-left-color: #059669;
+}
+.kanban-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+.kc-type {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+.kanban-card-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.4rem;
+  line-height: 1.35;
+}
+.kanban-card-info {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+.kanban-card-volunteers {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+.vol-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #fff;
+}
+.vol-more {
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+.kanban-card-pub {
+  margin-bottom: 0.6rem;
+}
+.kanban-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.kc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity 0.15s;
+}
+.kc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.kc-btn-status {
+  width: 100%;
+}
+.kc-btn--in_progress {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+.kc-btn--done {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+.kc-btn--cancelled {
+  background: #f3f4f6;
+  color: #4b5563;
+  border-color: #e5e7eb;
+}
+.kc-btn--new {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.kc-btn-row {
+  display: flex;
+  gap: 0.35rem;
+}
+.kc-btn-publish {
+  background: #2563eb;
+  color: #fff;
+  flex: 1;
+}
+.kc-btn-unpublish {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #e5e7eb;
+  flex: 1;
+}
+.kc-btn-assign {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+  flex: 1;
+}
+.kc-btn-edit {
+  background: #f8fafc;
+  color: #374151;
+  border-color: #e5e7eb;
+}
+.kanban-empty {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  padding: 1.5rem 0;
+}
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+.modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 85vh;
+  overflow: auto;
+}
+.modal-content-wide {
+  max-width: 560px;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #eee;
+}
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  line-height: 1;
+}
+.modal-close:hover {
+  color: #111;
+}
+.modal-body {
+  padding: 1.25rem;
+}
+.modal-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #eee;
+}
+.mb-3 {
+  margin-bottom: 1rem;
+}
+.volunteer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.volunteer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.vol-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.vol-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.vol-district {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+.edit-request-form .form-group {
+  margin-bottom: 1rem;
+}
+.edit-request-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+}
+.edit-request-form .form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
 </style>

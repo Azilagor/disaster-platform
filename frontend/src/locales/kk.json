@@ -336,7 +336,11 @@
       "SHELTER": "Тұру және түндеу",
       "REPAIR": "Жөндеу және техника",
       "PSYCHOLOGICAL": "Психологиялық көмек"
-    }
+    },
+    "mapPointLabel": "Картадағы нүкте",
+    "mapOptional": "(міндетті емес)",
+    "addressFromMapBadge": "Картadan",
+    "filledFromProfile": "Байланыс деректері профильден толтырылды. Қажет болса өзгертіңіз."
   },
   "resetPassword": {
     "requestNew": "Жаңа сілтеме сұрау",
@@ -386,7 +390,16 @@
     "respond": "Жауап беру",
     "respondLoading": "...",
     "respondError": "Жауап беру сәтсіз",
-    "unnamedRequest": "Сұраныс"
+    "unnamedRequest": "Сұраныс",
+    "landmark": "Бағыт",
+    "districtLabel": "Аудан",
+    "peopleNeed": "Адам саны",
+    "peopleSuffix": "адам",
+    "volunteersCount": "Еріктілер",
+    "weatherNow": "Ауа-райы қазір — {city}",
+    "feelsLike": "сезі {n}°C",
+    "weatherLine": "{desc} · 💨 {wind} м/с · 💧 {humidity}%",
+    "windUnit": "м/с"
   },
   "myRequests": {
     "title": "Менің өтініштерім",
@@ -436,7 +449,16 @@
     "publishError": "Жариялау қатесі",
     "unpublishError": "Жою қатесі",
     "statusError": "Күйді өзгерту қатесі",
-    "assignError": "Тағайындау қатесі"
+    "assignError": "Тағайындау қатесі",
+    "viewTable": "Кесте",
+    "viewKanban": "Канбан",
+    "kanbanNew": "Жаңалар",
+    "kanbanInProgress": "Орындалуда",
+    "kanbanDone": "Орындалған",
+    "kanbanCancelled": "Бас тартылған",
+    "kanbanEmpty": "Өтініш жоқ",
+    "assigningShort": "...",
+    "savingEdit": "Сақталуда..."
   },
   "volunteers": {
     "title": "Еріктілер",
@@ -594,7 +616,35 @@
       "deleteConfirm": "Пайдаланушыны жоямыз ба?",
       "notFound": "Пайдаланушы табылмады",
       "saved": "Сақталды",
-      "roleChanged": "Рөл жаңартылды"
+      "roleChanged": "Рөл жаңартылды",
+      "editData": "Деректерді өңдеу",
+      "saveChanges": "Өзгерістерді сақтау",
+      "saving": "Сақталуда...",
+      "passwordTitle": "Құпия сөзді өзгерту",
+      "passwordHint": "Осы пайдаланушыға жаңа құпия сөз орнатыңыз. Кемінде 8 таңба.",
+      "newPassword": "Жаңа құпия сөз",
+      "confirmPassword": "Растау",
+      "passwordPlaceholder": "Кемінде 8 таңба",
+      "repeatPasswordPlaceholder": "Құпия сөзді қайталаңыз",
+      "passwordMismatch": "Құпия сөздер сәйкес емес",
+      "setPassword": "Құпия сөзді орнату",
+      "passwordChanged": "Құпия сөз жаңартылды",
+      "togglePassword": "Құпия сөзді көрсету немесе жасыру",
+      "deleteTitle": "Пайдаланушыны жою",
+      "deleteIntro": "Бұл қайтарылмайды. Барлық байланысты деректер жойылады:",
+      "deleteCascadeUser": "Пайдаланушы аккаунты",
+      "deleteCascadeRequests": "Жасалған барлық өтініштер ({count})",
+      "deleteCascadeVolunteer": "Ерікті ретіндегі барлық тағайындаулар ({count})",
+      "deleteCascadeTokens": "Растау және құпия сөзді қалпына келтіру токендері",
+      "deleteBtn": "Пайдаланушыны жою",
+      "deleteConfirmPrompt": "{name} ({email}) жоямыз ба?",
+      "deleteConfirmIrreversible": "Бұл әрекетті болдырмау мүмкін емес.",
+      "deleteTypeEmail": "Растау үшін пайдаланушының email-ін енгізіңіз:",
+      "deleteConfirmBtn": "Жоюды растау",
+      "deleting": "Жойылуда...",
+      "emailVerified": "✓ Email расталған",
+      "emailNotVerified": "✗ Email расталмаған",
+      "idLabel": "ID"
     },
     "incidentForm": {
       "newTitle": "Жаңа оқиға",

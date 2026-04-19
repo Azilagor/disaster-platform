@@ -41,6 +41,9 @@ export async function createRequest(data) {
       contactName: data.contactName,
       contactPhone: data.contactPhone,
       ...(data.contactComment && { contactComment: data.contactComment }),
+      ...(data.latitude != null && data.longitude != null
+        ? { latitude: data.latitude, longitude: data.longitude }
+        : {}),
     }),
   })
   return parseJsonResponse(res)

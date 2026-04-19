@@ -189,7 +189,7 @@
                 </svg>
               </div>
               <div class="stat-content">
-                <div class="stat-value">8</div>
+                <div class="stat-value">{{ doneCount }}</div>
                 <div class="stat-label">{{ t('profilePage.completedAsVolunteer') }}</div>
               </div>
             </div>
@@ -487,6 +487,8 @@ watch(() => authStore.user, syncProfileForm, { deep: true })
 const myRequests = ref([])
 const myRequestsLoading = ref(true)
 const myRequestsError = ref('')
+
+const doneCount = computed(() => myRequests.value.filter((r) => r.status === 'DONE').length)
 
 onMounted(async () => {
   syncProfileForm()

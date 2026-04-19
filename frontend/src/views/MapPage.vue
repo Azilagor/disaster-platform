@@ -28,6 +28,20 @@
       </div>
       <div class="map-area">
         <div ref="mapRef" class="map-wrapper"></div>
+        <div v-if="weather" class="map-weather-widget">
+          <img v-if="weather.icon" :src="weather.icon" :alt="weather.description" class="mw-icon" />
+          <div class="mw-body">
+            <div class="mw-temp">{{ weather.temp }}°C</div>
+            <div class="mw-desc">{{ weather.description }}</div>
+            <div class="mw-details">
+              <span>💨 {{ weather.windSpeed }} {{ $t('map.windUnit') }}</span>
+              <span>💧 {{ weather.humidity }}%</span>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="weatherLoading" class="map-weather-widget map-weather-widget--loading">
+          <div class="mw-skeleton"></div>
+        </div>
         <div class="map-legend">
           <h4>{{ $t('map.priorityLegend') }}</h4>
           <div class="legend-items">
@@ -86,7 +100,7 @@
       </div>
       <div class="filter-stats">
         <div class="filter-stat-item">
-          <strong>{{ requests.length }}</strong>
+          <strong>{{ filteredBySearch.length }}</strong>
           <span>{{ $t('map.onMapCount') }}</span>
         </div>
       </div>
@@ -96,11 +110,13 @@
           :key="r.id"
           class="request-list-item"
           :class="{ active: selectedRequest && selectedRequest.id === r.id }"
-          @click="selectedRequest = r"
+          @click="selectedRequest = r; panelOpen = false"
         >
           <span class="priority-dot" :class="(r.priority || '').toLowerCase()"></span>
-          <span class="request-list-title">{{ r.title }}</span>
-          <span class="request-list-address">{{ r.address }}</span>
+          <div class="request-list-body">
+            <span class="request-list-title">{{ r.title }}</span>
+            <span class="request-list-address">{{ r.address }}</span>
+          </div>
         </div>
       </div>
       </div>
@@ -109,9 +125,14 @@
     <!-- Modal: request detail -->
     <div v-if="selectedRequest" class="modal" @click.self="selectedRequest = null">
       <div class="modal-overlay"></div>
-      <div class="modal-content">
+      <div class="modal-content modal-content-map-detail">
         <div class="modal-header">
-          <h2>{{ $t('map.requestModalTitle', { id: selectedRequest.id }) }}</h2>
+          <div class="modal-header-left">
+            <span class="modal-id">#{{ selectedRequest.id }}</span>
+            <span class="priority-badge" :class="(selectedRequest.priority || '').toLowerCase()">
+              {{ priorityLabels[selectedRequest.priority] || selectedRequest.priority }}
+            </span>
+          </div>
           <button type="button" class="modal-close" :aria-label="$t('common.close')" @click="selectedRequest = null">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 2L2 18M2 2l16 16" />
@@ -119,24 +140,58 @@
           </button>
         </div>
         <div class="modal-body">
-          <div class="request-detail-header">
-            <span class="priority-badge" :class="(selectedRequest.priority || '').toLowerCase()">
-              {{ priorityLabels[selectedRequest.priority] || selectedRequest.priority }}
-            </span>
-            <span class="problem-type">{{ problemTypeLabels[selectedRequest.problemType] || selectedRequest.problemType }}</span>
+          <div class="mc-type">{{ problemTypeLabels[selectedRequest.problemType] || selectedRequest.problemType }}</div>
+          <h3 class="mc-title">{{ selectedRequest.title }}</h3>
+          <div class="mc-info-grid">
+            <div class="mc-info-item">
+              <span class="mc-info-label">📍 {{ $t('map.address') }}</span>
+              <span class="mc-info-value">{{ selectedRequest.address }}</span>
+            </div>
+            <div v-if="selectedRequest.landmark" class="mc-info-item">
+              <span class="mc-info-label">🗺 {{ $t('map.landmark') }}</span>
+              <span class="mc-info-value">{{ selectedRequest.landmark }}</span>
+            </div>
+            <div class="mc-info-item">
+              <span class="mc-info-label">🏙 {{ $t('map.districtLabel') }}</span>
+              <span class="mc-info-value">{{ districtLabels[selectedRequest.district] || selectedRequest.district }}</span>
+            </div>
+            <div v-if="selectedRequest.peopleCount" class="mc-info-item">
+              <span class="mc-info-label">👥 {{ $t('map.peopleNeed') }}</span>
+              <span class="mc-info-value">{{ selectedRequest.peopleCount }} {{ $t('map.peopleSuffix') }}</span>
+            </div>
+            <div v-if="selectedRequest.contactPhone" class="mc-info-item">
+              <span class="mc-info-label">📞 {{ $t('map.contact') }}</span>
+              <a :href="'tel:' + selectedRequest.contactPhone" class="mc-info-value mc-phone">{{ selectedRequest.contactPhone }}</a>
+            </div>
+            <div v-if="selectedRequest._count?.volunteers !== undefined" class="mc-info-item">
+              <span class="mc-info-label">🙋 {{ $t('map.volunteersCount') }}</span>
+              <span class="mc-info-value">{{ selectedRequest._count.volunteers }}</span>
+            </div>
           </div>
-          <h3>{{ selectedRequest.title }}</h3>
-          <div class="detail-section">
-            <h4>{{ $t('map.address') }}</h4>
-            <p>{{ selectedRequest.address }}</p>
+          <div v-if="weather" class="mc-weather">
+            <div class="mc-weather-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              </svg>
+              {{ $t('map.weatherNow', { city: weather.city }) }}
+            </div>
+            <div class="mc-weather-body">
+              <img v-if="weather.icon" :src="weather.icon" :alt="weather.description" class="mc-weather-icon" />
+              <div>
+                <div class="mc-weather-temp">
+                  {{ weather.temp }}°C
+                  <span class="mc-weather-feels">{{ $t('map.feelsLike', { n: weather.feelsLike }) }}</span>
+                </div>
+                <div class="mc-weather-desc">
+                  {{ $t('map.weatherLine', { desc: weather.description, wind: weather.windSpeed, humidity: weather.humidity }) }}
+                </div>
+              </div>
+            </div>
           </div>
-          <div v-if="selectedRequest.peopleCount" class="detail-section">
-            <h4>{{ $t('map.peopleCount') }}</h4>
-            <p>{{ selectedRequest.peopleCount }}</p>
-          </div>
-          <div v-if="selectedRequest.contactPhone" class="detail-section">
-            <h4>{{ $t('map.contact') }}</h4>
-            <p>{{ selectedRequest.contactPhone }}</p>
+          <div class="mc-pub-status">
+            <span v-if="selectedRequest.isPublished" class="badge badge-success">{{ $t('myRequests.published') }}</span>
+            <span v-else class="badge badge-secondary">{{ $t('myRequests.notPublished') }}</span>
           </div>
         </div>
         <div class="modal-footer">
@@ -163,6 +218,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth.js'
 import { getRequestsMap, getMyRequests, volunteerRespond } from '../api/requests.js'
 import { withLoading } from '../stores/loading.js'
+import { API_BASE_URL } from '../api/config.js'
 import {
   ALLOWED_DISTRICTS,
   ALLOWED_PRIORITIES,
@@ -206,6 +262,20 @@ let map = null
 let markersLayer = null
 
 const filters = reactive({ scope: 'all', district: '', priority: '', problemType: '' })
+
+const weather = ref(null)
+const weatherLoading = ref(true)
+
+async function fetchWeather() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/weather`)
+    if (res.ok) weather.value = await res.json()
+  } catch {
+    /* ignore */
+  } finally {
+    weatherLoading.value = false
+  }
+}
 
 const ACTIVE_STATUSES = new Set(['NEW', 'IN_PROGRESS'])
 const PRIORITY_RANK = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
@@ -375,11 +445,16 @@ function updateMarkers() {
     })
     const marker = L.marker([lat, lon], { icon })
     marker.request = r
-    marker.bindTooltip(escapeHtml(r.title || t('map.unnamedRequest')), {
+    const tooltipHtml =
+      `<div class="map-tooltip">` +
+      `<strong>${escapeHtml(r.title || t('map.unnamedRequest'))}</strong>` +
+      `<span class="map-tooltip-priority map-tooltip-priority--${(r.priority || '').toLowerCase()}">${escapeHtml(priorityLabels.value[r.priority] || r.priority)}</span>` +
+      `</div>`
+    marker.bindTooltip(tooltipHtml, {
       direction: 'top',
       permanent: false,
       offset: [0, -36],
-      className: 'map-marker-tooltip',
+      className: 'map-marker-tooltip-rich',
     })
     if (fullDetail) {
       marker.on('click', () => { selectedRequest.value = r })
@@ -396,6 +471,7 @@ function updateMarkers() {
 }
 
 onMounted(async () => {
+  fetchWeather()
   await nextTick()
   if (mapRef.value) {
     const L = (await import('leaflet')).default
@@ -513,10 +589,19 @@ async function respondFromMap(id) {
 .filter-stats { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
 .filter-stat-item { font-size: 0.9rem; }
 .request-list-sidebar { margin-top: 1rem; }
-.request-list-item { padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+.request-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.request-list-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .request-list-item:hover { background: #f8f8f8; }
 .request-list-item.active { background: #e8f0fe; }
-.priority-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.5rem; }
+.priority-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
 .priority-dot.critical, .priority-dot.high { background: #dc2626; }
 .priority-dot.medium { background: #d97706; }
 .priority-dot.low { background: #059669; }
@@ -526,11 +611,64 @@ async function respondFromMap(id) {
 .search-box { flex: 1; }
 .search-box input { width: 100%; }
 .map-area { position: relative; flex: 1; min-height: 300px; }
+.map-weather-widget {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 400;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 160px;
+}
+.map-weather-widget--loading { min-height: 56px; }
+.mw-skeleton {
+  width: 100%;
+  height: 36px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200%;
+  animation: mw-shimmer 1.4s infinite;
+  border-radius: 6px;
+}
+@keyframes mw-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.mw-icon { width: 40px; height: 40px; flex-shrink: 0; }
+.mw-body { display: flex; flex-direction: column; gap: 1px; }
+.mw-temp { font-size: 1.15rem; font-weight: 700; color: #1d4ed8; line-height: 1; }
+.mw-desc { font-size: 0.72rem; color: #6b7280; text-transform: capitalize; }
+.mw-details { display: flex; gap: 0.5rem; font-size: 0.7rem; color: #9ca3af; margin-top: 1px; }
 .map-wrapper { position: absolute; inset: 0; width: 100%; height: 100%; background: #e8e8e8; }
 .map-wrapper :deep(.request-marker) { background: none !important; border: none !important; }
 .map-wrapper :deep(.request-marker--pin .map-pin-svg) { display: block; pointer-events: none; }
 .map-wrapper :deep(.leaflet-popup-tip) { background: #fff; }
 .map-wrapper :deep(.map-marker-tooltip) { font-size: 0.85rem; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.map-wrapper :deep(.map-marker-tooltip-rich) {
+  background: #1f2937;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.map-wrapper :deep(.map-marker-tooltip-rich::before) { border-top-color: #1f2937; }
+.map-wrapper :deep(.map-tooltip) { display: flex; flex-direction: column; gap: 2px; max-width: 200px; }
+.map-wrapper :deep(.map-tooltip-priority) {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  align-self: flex-start;
+}
+.map-wrapper :deep(.map-tooltip-priority--critical) { background: #fee2e2; color: #991b1b; }
+.map-wrapper :deep(.map-tooltip-priority--high) { background: #ffedd5; color: #9a3412; }
+.map-wrapper :deep(.map-tooltip-priority--medium) { background: #fef9c3; color: #854d0e; }
+.map-wrapper :deep(.map-tooltip-priority--low) { background: #dcfce7; color: #166534; }
 .map-wrapper :deep(.map-marker-popup-container .leaflet-popup-content-wrapper) { border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
 .map-wrapper :deep(.map-marker-popup) { margin: 0; font-size: 0.9rem; }
 .map-wrapper :deep(.map-marker-popup-address) { color: #666; font-size: 0.85rem; }
@@ -556,18 +694,57 @@ async function respondFromMap(id) {
 .low-marker { background: #059669; }
 .modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; }
 .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
-.modal-content { position: relative; background: #fff; border-radius: 8px; max-width: 440px; width: 90%; max-height: 90vh; overflow: auto; }
-.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; }
-.modal-close { background: none; border: none; cursor: pointer; padding: 0.25rem; }
-.modal-body { padding: 1rem; }
-.request-detail-header { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
-.priority-badge { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 4px; }
-.priority-badge.critical, .priority-badge.high { background: #fee2e2; color: #991b1b; }
-.priority-badge.medium { background: #fef3c7; color: #92400e; }
-.priority-badge.low { background: #d1fae5; color: #065f46; }
-.detail-section { margin-top: 0.75rem; }
-.detail-section h4 { margin: 0 0 0.25rem; font-size: 0.85rem; color: #666; }
-.detail-section p { margin: 0; font-size: 0.95rem; }
-.modal-footer { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 1rem; border-top: 1px solid #eee; }
-.problem-type { font-size: 0.85rem; color: #666; }
+.modal-content { position: relative; background: #fff; border-radius: 14px; max-width: 440px; width: 90%; max-height: 90vh; overflow: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2); }
+.modal-content-map-detail { max-width: 460px; }
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+.modal-header-left { display: flex; align-items: center; gap: 0.5rem; }
+.modal-id { font-size: 0.82rem; color: #9ca3af; font-weight: 600; }
+.modal-close { background: none; border: none; cursor: pointer; padding: 0.2rem; border-radius: 6px; color: #6b7280; }
+.modal-close:hover { background: #f3f4f6; color: #111; }
+.modal-body { padding: 1.25rem; }
+.mc-type { font-size: 0.78rem; color: #6b7280; margin-bottom: 0.25rem; }
+.mc-title { font-size: 1.05rem; font-weight: 700; color: #111827; margin: 0 0 1rem; line-height: 1.35; }
+.mc-info-grid { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+.mc-info-item { display: flex; flex-direction: column; gap: 2px; }
+.mc-info-label { font-size: 0.75rem; color: #9ca3af; }
+.mc-info-value { font-size: 0.9rem; color: #1f2937; }
+.mc-phone { color: #2563eb; text-decoration: none; }
+.mc-phone:hover { text-decoration: underline; }
+.mc-weather {
+  background: #f0f7ff;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #bfdbfe;
+}
+.mc-weather-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  margin-bottom: 0.5rem;
+}
+.mc-weather-body { display: flex; align-items: center; gap: 0.5rem; }
+.mc-weather-icon { width: 36px; height: 36px; }
+.mc-weather-temp { font-size: 1rem; font-weight: 700; color: #1d4ed8; }
+.mc-weather-feels { font-size: 0.78rem; font-weight: 400; color: #6b7280; margin-left: 0.35rem; }
+.mc-weather-desc { font-size: 0.78rem; color: #6b7280; margin-top: 1px; }
+.mc-pub-status { margin-top: 0.5rem; }
+.priority-badge { display: inline-block; font-size: 0.78rem; padding: 0.2rem 0.55rem; border-radius: 20px; font-weight: 600; }
+.priority-badge.critical { background: #fee2e2; color: #991b1b; }
+.priority-badge.high { background: #ffedd5; color: #9a3412; }
+.priority-badge.medium { background: #fef9c3; color: #854d0e; }
+.priority-badge.low { background: #dcfce7; color: #166534; }
+.badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+.badge-success { background: #d4edda; color: #155724; }
+.badge-secondary { background: #e2e3e5; color: #383d41; }
+.modal-footer { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 1rem 1.25rem; border-top: 1px solid #f3f4f6; }
 </style>

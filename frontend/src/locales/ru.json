@@ -336,7 +336,11 @@
       "SHELTER": "Жильё и ночлег",
       "REPAIR": "Ремонт и техника",
       "PSYCHOLOGICAL": "Психологическая помощь"
-    }
+    },
+    "mapPointLabel": "Точка на карте",
+    "mapOptional": "(необязательно)",
+    "addressFromMapBadge": "Из карты",
+    "filledFromProfile": "Контактные данные заполнены из вашего профиля. При необходимости отредактируйте."
   },
   "resetPassword": {
     "requestNew": "Запросить новую ссылку",
@@ -386,7 +390,16 @@
     "respond": "Откликнуться",
     "respondLoading": "...",
     "respondError": "Не удалось откликнуться",
-    "unnamedRequest": "Запрос"
+    "unnamedRequest": "Запрос",
+    "landmark": "Ориентир",
+    "districtLabel": "Район",
+    "peopleNeed": "Нуждающихся",
+    "peopleSuffix": "чел.",
+    "volunteersCount": "Волонтёров",
+    "weatherNow": "Погода сейчас — {city}",
+    "feelsLike": "ощущается {n}°C",
+    "weatherLine": "{desc} · 💨 {wind} м/с · 💧 {humidity}%",
+    "windUnit": "м/с"
   },
   "myRequests": {
     "title": "Мои заявки",
@@ -436,7 +449,16 @@
     "publishError": "Ошибка публикации",
     "unpublishError": "Ошибка снятия",
     "statusError": "Ошибка смены статуса",
-    "assignError": "Ошибка назначения"
+    "assignError": "Ошибка назначения",
+    "viewTable": "Таблица",
+    "viewKanban": "Канбан",
+    "kanbanNew": "Новые",
+    "kanbanInProgress": "В работе",
+    "kanbanDone": "Выполнены",
+    "kanbanCancelled": "Отменены",
+    "kanbanEmpty": "Нет заявок",
+    "assigningShort": "...",
+    "savingEdit": "Сохранение..."
   },
   "volunteers": {
     "title": "Волонтёры",
@@ -594,7 +616,35 @@
       "deleteConfirm": "Удалить пользователя?",
       "notFound": "Пользователь не найден",
       "saved": "Сохранено",
-      "roleChanged": "Роль изменена"
+      "roleChanged": "Роль изменена",
+      "editData": "Редактирование данных",
+      "saveChanges": "Сохранить изменения",
+      "saving": "Сохранение...",
+      "passwordTitle": "Смена пароля",
+      "passwordHint": "Установить новый пароль для этого пользователя. Минимум 8 символов.",
+      "newPassword": "Новый пароль",
+      "confirmPassword": "Подтверждение",
+      "passwordPlaceholder": "Минимум 8 символов",
+      "repeatPasswordPlaceholder": "Повторите пароль",
+      "passwordMismatch": "Пароли не совпадают",
+      "setPassword": "Установить пароль",
+      "passwordChanged": "Пароль изменён",
+      "togglePassword": "Показать или скрыть пароль",
+      "deleteTitle": "Удаление пользователя",
+      "deleteIntro": "Удаление необратимо. Будут каскадно удалены все связанные данные:",
+      "deleteCascadeUser": "Аккаунт пользователя",
+      "deleteCascadeRequests": "Все созданные заявки ({count} шт.)",
+      "deleteCascadeVolunteer": "Все назначения как волонтёра ({count} шт.)",
+      "deleteCascadeTokens": "Токены верификации и сброса пароля",
+      "deleteBtn": "Удалить пользователя",
+      "deleteConfirmPrompt": "Вы точно хотите удалить {name} ({email})?",
+      "deleteConfirmIrreversible": "Это действие невозможно отменить.",
+      "deleteTypeEmail": "Введите email пользователя для подтверждения:",
+      "deleteConfirmBtn": "Подтвердить удаление",
+      "deleting": "Удаление...",
+      "emailVerified": "✓ Email подтверждён",
+      "emailNotVerified": "✗ Email не подтверждён",
+      "idLabel": "ID"
     },
     "incidentForm": {
       "newTitle": "Новый инцидент",

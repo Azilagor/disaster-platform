@@ -91,7 +91,10 @@
                 <div v-if="formErrors.title" class="invalid-feedback">{{ fieldError('title') }}</div>
               </div>
               <div class="form-group full-width">
-                <label for="address">{{ $t('createRequest.addressLabel') }}</label>
+                <label for="address">
+                  {{ $t('createRequest.addressLabel') }}
+                  <span v-if="addressFromMap" class="field-hint-badge">{{ $t('createRequest.addressFromMapBadge') }}</span>
+                </label>
                 <input
                   id="address"
                   v-model="form.address"
@@ -99,8 +102,13 @@
                   class="form-control"
                   :class="{ 'is-invalid': formErrors.address }"
                   :placeholder="$t('createRequest.addressPlaceholder')"
+                  @input="addressFromMap = false"
                 />
                 <div v-if="formErrors.address" class="invalid-feedback">{{ fieldError('address') }}</div>
+              </div>
+              <div class="form-group full-width">
+                <label>{{ $t('createRequest.mapPointLabel') }} <span class="field-optional">{{ $t('createRequest.mapOptional') }}</span></label>
+                <MapPicker v-model="mapCoords" @address="onMapAddress" />
               </div>
               <div class="form-group">
                 <label for="district">{{ $t('createRequest.districtLabel') }}</label>
@@ -154,6 +162,13 @@
 
           <div class="form-step" :class="{ active: currentStep === 3 }">
             <h2 class="step-title">{{ $t('createRequest.contactsTitle') }}</h2>
+            <div v-if="filledFromProfile" class="info-box info-box--success">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <path d="M22 4L12 14.01l-3-3" />
+              </svg>
+              <div>{{ $t('createRequest.filledFromProfile') }}</div>
+            </div>
             <div class="form-grid">
               <div class="form-group">
                 <label for="contactName">{{ $t('createRequest.yourName') }}</label>
@@ -213,9 +228,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import MapPicker from '../components/MapPicker.vue'
+import { useAuthStore } from '../stores/auth.js'
 import AppHeader from '../components/layout/AppHeader.vue'
 import AppFooter from '../components/layout/AppFooter.vue'
 import { createRequest } from '../api/requests.js'
@@ -233,11 +250,38 @@ import { useEnumLabel } from '../composables/useEnumLabel.js'
 
 const router = useRouter()
 const { t } = useI18n()
+const authStore = useAuthStore()
 const labels = useEnumLabel()
 
 const currentStep = ref(1)
 const submitting = ref(false)
 const submitError = ref('')
+const mapCoords = ref({ lat: null, lng: null })
+const addressFromMap = ref(false)
+const filledFromProfile = ref(false)
+
+onMounted(() => {
+  const user = authStore.user
+  if (!user) return
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ')
+  if (name) {
+    form.contactName = name
+    filledFromProfile.value = true
+  }
+  if (user.phone) {
+    form.contactPhone = user.phone
+    filledFromProfile.value = true
+  }
+  if (user.district) form.district = user.district
+})
+
+function onMapAddress(address) {
+  if (!address) return
+  if (!form.address.trim() || addressFromMap.value) {
+    form.address = address
+    addressFromMap.value = true
+  }
+}
 const form = reactive({
   problemType: '',
   title: '',
@@ -329,6 +373,8 @@ async function submitRequest() {
         contactName: form.contactName?.trim() ?? '',
         contactPhone: form.contactPhone?.trim() ?? '',
         contactComment: form.contactComment?.trim() || undefined,
+        latitude: mapCoords.value.lat != null ? Number(mapCoords.value.lat) : undefined,
+        longitude: mapCoords.value.lng != null ? Number(mapCoords.value.lng) : undefined,
       })
     )
     if (created?.id != null) {
@@ -343,3 +389,27 @@ async function submitRequest() {
   }
 }
 </script>
+
+<style scoped>
+.field-optional {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-weight: 400;
+  margin-left: 0.25rem;
+}
+.field-hint-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.5rem;
+  background: #eff6ff;
+  color: #2563eb;
+  border-radius: 20px;
+  font-weight: 500;
+}
+.info-box--success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+</style>
