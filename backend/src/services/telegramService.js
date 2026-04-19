@@ -1,11 +1,12 @@
 const TelegramBot = require("node-telegram-bot-api");
 const bcrypt = require("bcryptjs");
 const prisma = require("../prismaClient");
+const logger = require("../utils/logger");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 if (!BOT_TOKEN) {
-  console.warn("⚠️  TELEGRAM_BOT_TOKEN не задан — Telegram-уведомления отключены");
+  logger.warn("TELEGRAM_BOT_TOKEN не задан — Telegram-уведомления отключены");
 }
 
 const bot = BOT_TOKEN
@@ -52,14 +53,23 @@ const INCIDENT_STATUS_LABELS = {
   RESOLVED: "✅ Ликвидирован",
 };
 
+const STATUS_LABELS = {
+  NEW: "🆕 Новая",
+  IN_PROGRESS: "⚙️ В работе",
+  DONE: "✅ Выполнена",
+  CANCELLED: "❌ Отменена",
+};
+
 const authSessions = new Map();
+
+// ── Вспомогательные функции ───────────────────────────────────
 
 async function safeSend(chatId, text, options = {}) {
   if (!bot || !chatId) return null;
   try {
     return await bot.sendMessage(chatId, text, { parse_mode: "HTML", ...options });
   } catch (err) {
-    console.error(`Telegram sendMessage error [chatId=${chatId}]:`, err.message);
+    logger.warn(`Telegram sendMessage error [chatId=${chatId}]: ${err.message}`);
     return null;
   }
 }
@@ -75,12 +85,22 @@ async function safeEditText(chatId, messageId, text, options = {}) {
     });
   } catch (err) {
     if (!err.message?.includes("message is not modified")) {
-      console.error(`Telegram editMessageText error [chatId=${chatId}]:`, err.message);
+      logger.warn(`Telegram editMessageText error [chatId=${chatId}]: ${err.message}`);
     }
   }
 }
 
-// /start
+// Текст меню команд
+function getCommandsHelp() {
+  return [
+    `📋 <b>Доступные команды:</b>`,
+    `/tasks — мои активные задачи`,
+    `/status — статус аккаунта`,
+    `/logout — отключить уведомления`,
+  ].join("\n");
+}
+
+// ── /start ────────────────────────────────────────────────────
 if (bot) {
   bot.onText(/\/start/, async (msg) => {
     const chatId = String(msg.chat.id);
@@ -95,7 +115,7 @@ if (bot) {
         chatId,
         `👋 Привет, <b>${existing.firstName}</b>! Вы уже подключены.\n\n` +
           `Вы будете получать уведомления о новых заявках.\n\n` +
-          `Команды:\n/logout — отключить уведомления`
+          getCommandsHelp()
       );
       return;
     }
@@ -111,7 +131,7 @@ if (bot) {
   });
 }
 
-// /logout
+// ── /logout ───────────────────────────────────────────────────
 if (bot) {
   bot.onText(/\/logout/, async (msg) => {
     const chatId = String(msg.chat.id);
@@ -141,7 +161,155 @@ if (bot) {
   });
 }
 
-// message
+// ── /tasks — список активных задач волонтёра ─────────────────
+if (bot) {
+  bot.onText(/\/tasks/, async (msg) => {
+    const chatId = String(msg.chat.id);
+
+    const volunteer = await prisma.user.findFirst({
+      where: { telegramChatId: chatId, role: "VOLUNTEER" },
+      select: { id: true, firstName: true },
+    });
+
+    if (!volunteer) {
+      await safeSend(
+        chatId,
+        `❌ Вы не авторизованы как волонтёр.\n\nНапишите /start чтобы войти.`
+      );
+      return;
+    }
+
+    const tasks = await prisma.requestVolunteer.findMany({
+      where: {
+        volunteerId: volunteer.id,
+        request: {
+          status: { in: ["NEW", "IN_PROGRESS"] },
+        },
+      },
+      include: {
+        request: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+            problemType: true,
+            address: true,
+            district: true,
+            contactPhone: true,
+            contactName: true,
+          },
+        },
+      },
+      orderBy: { assignedAt: "desc" },
+    });
+
+    if (tasks.length === 0) {
+      await safeSend(
+        chatId,
+        `📋 <b>${volunteer.firstName}</b>, у вас нет активных задач.\n\n` +
+          `Новые заявки приходят автоматически — следите за уведомлениями.`
+      );
+      return;
+    }
+
+    const lines = [
+      `📋 <b>Ваши активные задачи (${tasks.length}):</b>`,
+      ``,
+    ];
+
+    tasks.forEach((t, i) => {
+      const r = t.request;
+      lines.push(
+        `<b>${i + 1}. Заявка #${r.id}</b> — ${STATUS_LABELS[r.status] || r.status}`,
+        `${PROBLEM_TYPE_LABELS[r.problemType] || r.problemType}`,
+        `${PRIORITY_LABELS[r.priority] || r.priority}`,
+        `📍 ${DISTRICT_LABELS[r.district] || r.district}, ${r.address}`,
+        `📞 ${r.contactName}: ${r.contactPhone}`,
+        ``
+      );
+    });
+
+    await safeSend(chatId, lines.join("\n"));
+  });
+}
+
+// ── /status — статус аккаунта волонтёра ──────────────────────
+if (bot) {
+  bot.onText(/\/status/, async (msg) => {
+    const chatId = String(msg.chat.id);
+
+    const volunteer = await prisma.user.findFirst({
+      where: { telegramChatId: chatId, role: "VOLUNTEER" },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        district: true,
+        createdAt: true,
+        _count: {
+          select: {
+            volunteerRequests: true,
+          },
+        },
+      },
+    });
+
+    if (!volunteer) {
+      await safeSend(
+        chatId,
+        `❌ Вы не авторизованы как волонтёр.\n\nНапишите /start чтобы войти.`
+      );
+      return;
+    }
+
+    // Считаем статистику
+    const [activeTasks, doneTasks] = await Promise.all([
+      prisma.requestVolunteer.count({
+        where: {
+          volunteerId: volunteer.id,
+          request: { status: { in: ["NEW", "IN_PROGRESS"] } },
+        },
+      }),
+      prisma.requestVolunteer.count({
+        where: {
+          volunteerId: volunteer.id,
+          request: { status: "DONE" },
+        },
+      }),
+    ]);
+
+    const memberSince = new Date(volunteer.createdAt).toLocaleDateString("ru-RU", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+
+    const text = [
+      `👤 <b>Статус аккаунта</b>`,
+      ``,
+      `<b>${volunteer.firstName} ${volunteer.lastName}</b>`,
+      `📧 ${volunteer.email}`,
+      volunteer.district
+        ? `📍 Район: ${DISTRICT_LABELS[volunteer.district] || volunteer.district}`
+        : null,
+      ``,
+      `📊 <b>Статистика:</b>`,
+      `⚙️ Активных задач: <b>${activeTasks}</b>`,
+      `✅ Выполнено задач: <b>${doneTasks}</b>`,
+      `📋 Всего откликов: <b>${volunteer._count.volunteerRequests}</b>`,
+      ``,
+      `📅 В системе с: ${memberSince}`,
+      ``,
+      `🟢 <b>Уведомления подключены</b>`,
+      ``,
+      getCommandsHelp(),
+    ].filter(Boolean).join("\n");
+
+    await safeSend(chatId, text);
+  });
+}
+
+// ── Обработка текстовых сообщений (авторизация) ───────────────
 if (bot) {
   bot.on("message", async (msg) => {
     if (msg.text && msg.text.startsWith("/")) return;
@@ -227,13 +395,13 @@ if (bot) {
         `✅ Вы успешно подключены, <b>${user.firstName}</b>!\n\n` +
           `Теперь вы будете получать уведомления о новых заявках.\n` +
           `Нажимайте <b>«Откликнуться»</b> прямо в сообщении.\n\n` +
-          `Команды:\n/logout — отключить уведомления`
+          getCommandsHelp()
       );
     }
   });
 }
 
-// callback_query
+// ── callback_query (кнопки в сообщениях) ─────────────────────
 if (bot) {
   bot.on("callback_query", async (query) => {
     const { data, from, message } = query;
@@ -250,7 +418,7 @@ if (bot) {
         });
       }
     } catch (err) {
-      console.error("callback_query error:", err);
+      logger.error("Telegram callback_query error", { message: err.message });
       await bot.answerCallbackQuery(query.id, {
         text: "Произошла ошибка. Попробуйте позже.",
       });
@@ -323,7 +491,7 @@ async function handleVolunteerJoin(requestId, telegramUser, query, message) {
   } catch (e) {
     if (e.code === "P2002") {
       await bot.answerCallbackQuery(query.id, {
-        text: "ℹ️ Вы уже записаны на эту заявку.",
+        text: "ℹВы уже записаны на эту заявку.",
       });
     } else {
       throw e;
@@ -331,14 +499,13 @@ async function handleVolunteerJoin(requestId, telegramUser, query, message) {
   }
 }
 
+// ── Функции уведомлений ───────────────────────────────────────
+
 async function notifyNewRequest(request) {
   if (!bot) return;
 
   const volunteers = await prisma.user.findMany({
-    where: {
-      role: "VOLUNTEER",
-      telegramChatId: { not: null },
-    },
+    where: { role: "VOLUNTEER", telegramChatId: { not: null } },
     select: { telegramChatId: true },
   });
 
@@ -353,22 +520,22 @@ async function notifyNewRequest(request) {
   );
 
   const text = [
-    `🆘 <b>Новая заявка #${request.id}</b>`,
+    ` <b>Новая заявка #${request.id}</b>`,
     ``,
     `<b>${request.title}</b>`,
     ``,
-    `📋 Тип: ${PROBLEM_TYPE_LABELS[request.problemType] || request.problemType}`,
-    `⚡️ Приоритет: ${PRIORITY_LABELS[request.priority] || request.priority}`,
+    `Тип: ${PROBLEM_TYPE_LABELS[request.problemType] || request.problemType}`,
+    ` Приоритет: ${PRIORITY_LABELS[request.priority] || request.priority}`,
     `📍 Район: ${DISTRICT_LABELS[request.district] || request.district}`,
-    `🏠 Адрес: ${request.address}`,
+    ` Адрес: ${request.address}`,
     request.landmark ? `🗺 Ориентир: ${request.landmark}` : null,
-    `👥 Нуждающихся: ${request.peopleCount} чел.`,
+    ` Нуждающихся: ${request.peopleCount} чел.`,
   ].filter(Boolean).join("\n");
 
   const keyboard = {
     inline_keyboard: [[
       { text: "✅ Откликнуться", callback_data: `volunteer_join_${request.id}` },
-      { text: "❌ Не смогу", callback_data: `volunteer_skip_${request.id}` },
+      { text: " Не смогу", callback_data: `volunteer_skip_${request.id}` },
     ]],
   };
 
@@ -403,10 +570,9 @@ async function notifyNewRequest(request) {
       where: { id: request.id },
       select: { id: true },
     });
-
     if (stillExists) {
       await prisma.requestTelegramMessage.createMany({ data: toSave }).catch((e) =>
-        console.error("Ошибка сохранения messageId:", e)
+        logger.error("Ошибка сохранения messageId Telegram", { message: e.message })
       );
     }
   }
@@ -427,37 +593,21 @@ async function notifyRequestUnpublished(request) {
     select: { volunteer: { select: { telegramChatId: true } } },
   });
   const respondedChatIds = new Set(
-    respondedVolunteers
-      .map((rv) => rv.volunteer.telegramChatId)
-      .filter(Boolean)
+    respondedVolunteers.map((rv) => rv.volunteer.telegramChatId).filter(Boolean)
   );
-
-  const textDefault = [
-    `🚫 <b>Заявка #${request.id} снята с публикации</b>`,
-    ``,
-    `<b>${request.title}</b>`,
-    ``,
-    `Координатор временно снял заявку. Следите за обновлениями.`,
-  ].join("\n");
-
-  const textResponded = [
-    `🚫 <b>Заявка #${request.id} снята с публикации</b>`,
-    ``,
-    `<b>${request.title}</b>`,
-    ``,
-    `Координатор временно снял заявку. Вы уже записаны — ваш отклик сохранён.`,
-  ].join("\n");
 
   await Promise.allSettled(
     messages.map((m) => {
-      const text = respondedChatIds.has(m.chatId) ? textResponded : textDefault;
+      const text = respondedChatIds.has(m.chatId)
+        ? ` <b>Заявка #${request.id} снята с публикации</b>\n\n<b>${request.title}</b>\n\nКоординатор временно снял заявку. Вы уже записаны — ваш отклик сохранён.`
+        : ` <b>Заявка #${request.id} снята с публикации</b>\n\n<b>${request.title}</b>\n\nКоординатор временно снял заявку. Следите за обновлениями.`;
       return safeEditText(m.chatId, m.messageId, text);
     })
   );
 
-  await prisma.requestTelegramMessage.deleteMany({
-    where: { requestId: request.id },
-  }).catch(() => {});
+  await prisma.requestTelegramMessage
+    .deleteMany({ where: { requestId: request.id } })
+    .catch(() => {});
 }
 
 async function notifyVolunteerAssigned(request, volunteer) {
@@ -468,14 +618,16 @@ async function notifyVolunteerAssigned(request, volunteer) {
     ``,
     `<b>${request.title}</b>`,
     ``,
-    `📋 Тип: ${PROBLEM_TYPE_LABELS[request.problemType] || request.problemType}`,
-    `⚡️ Приоритет: ${PRIORITY_LABELS[request.priority] || request.priority}`,
-    `📍 Район: ${DISTRICT_LABELS[request.district] || request.district}`,
-    `🏠 Адрес: ${request.address}`,
+    ` Тип: ${PROBLEM_TYPE_LABELS[request.problemType] || request.problemType}`,
+    ` Приоритет: ${PRIORITY_LABELS[request.priority] || request.priority}`,
+    ` Район: ${DISTRICT_LABELS[request.district] || request.district}`,
+    `🏠Адрес: ${request.address}`,
     request.landmark ? `🗺 Ориентир: ${request.landmark}` : null,
     ``,
     `📞 Контакт: ${request.contactName} — ${request.contactPhone}`,
     request.contactTelegram ? `💬 Telegram: ${request.contactTelegram}` : null,
+    ``,
+    ` Проверить все задачи: /tasks`,
   ].filter(Boolean).join("\n");
 
   await safeSend(volunteer.telegramChatId, text);
@@ -504,17 +656,14 @@ async function notifyNewIncident(incident) {
   if (!bot) return;
 
   const volunteers = await prisma.user.findMany({
-    where: {
-      role: "VOLUNTEER",
-      telegramChatId: { not: null },
-    },
+    where: { role: "VOLUNTEER", telegramChatId: { not: null } },
     select: { telegramChatId: true },
   });
 
   if (volunteers.length === 0) return;
 
   const text = [
-    `🚨 <b>НОВЫЙ ИНЦИДЕНТ</b>`,
+    ` <b>НОВЫЙ ИНЦИДЕНТ</b>`,
     ``,
     `<b>${incident.title}</b>`,
     ``,
@@ -533,10 +682,7 @@ async function notifyIncidentStatusChanged(incident, oldStatus) {
   if (!bot) return;
 
   const volunteers = await prisma.user.findMany({
-    where: {
-      role: "VOLUNTEER",
-      telegramChatId: { not: null },
-    },
+    where: { role: "VOLUNTEER", telegramChatId: { not: null } },
     select: { telegramChatId: true },
   });
 
@@ -581,8 +727,7 @@ async function notifyVolunteerAlreadyJoined(requestId, volunteerId) {
       },
       { chat_id: volunteer.telegramChatId, message_id: record.messageId }
     );
-  } catch (e) {
-  }
+  } catch (_) {}
 }
 
 module.exports = {

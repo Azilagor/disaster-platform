@@ -64,6 +64,28 @@ enum IncidentStatus {
   RESOLVED
 }
 
+// Тип действия для лога активности
+enum ActivityAction {
+  USER_REGISTERED
+  USER_LOGIN
+  USER_ROLE_CHANGED
+  USER_DELETED
+  REQUEST_CREATED
+  REQUEST_UPDATED
+  REQUEST_PUBLISHED
+  REQUEST_UNPUBLISHED
+  REQUEST_STATUS_CHANGED
+  REQUEST_DELETED
+  VOLUNTEER_ASSIGNED
+  VOLUNTEER_UNASSIGNED
+  VOLUNTEER_JOINED
+  VOLUNTEER_LEFT
+  INCIDENT_CREATED
+  INCIDENT_UPDATED
+  INCIDENT_STATUS_CHANGED
+  INCIDENT_DELETED
+}
+
 // ==============================
 // MODELS
 // ==============================
@@ -79,7 +101,7 @@ model User {
 
   isEmailVerified  Boolean   @default(false)
   telegramUsername String?   @db.VarChar(64)
-  telegramChatId   String? 
+  telegramChatId   String?
   district         District?
   avatarUrl        String?
 
@@ -89,17 +111,13 @@ model User {
   emailVerificationToken EmailVerificationToken?
   passwordResetToken     PasswordResetToken?
 
-  // Заявки созданные пользователем
-  createdRequests   Request[] @relation("RequestCreatedBy")
-
-  // Заявки опубликованные координатором
-  publishedRequests Request[] @relation("RequestPublishedBy")
-
-  // Участие волонтёра в заявках (many-to-many)
+  createdRequests   Request[]  @relation("RequestCreatedBy")
+  publishedRequests Request[]  @relation("RequestPublishedBy")
   volunteerRequests RequestVolunteer[]
+  createdIncidents  Incident[] @relation("IncidentCreatedBy")
 
-  // Инциденты созданные координатором/админом
-  createdIncidents Incident[] @relation("IncidentCreatedBy")
+  // Лог действий пользователя
+  activityLogs ActivityLog[]
 
   @@map("users")
 }
@@ -123,7 +141,6 @@ model Request {
   district    District
   landmark    String?
 
-
   latitude  Float?
   longitude Float?
 
@@ -138,7 +155,11 @@ model Request {
   createdById Int
   createdBy   User @relation("RequestCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
 
-  volunteers RequestVolunteer[]
+  // Связь с инцидентом (необязательная)
+  incidentId Int?
+  incident   Incident? @relation("IncidentRequests", fields: [incidentId], references: [id], onDelete: SetNull)
+
+  volunteers       RequestVolunteer[]
   telegramMessages RequestTelegramMessage[]
 
   createdAt DateTime @default(now())
@@ -149,6 +170,7 @@ model Request {
   @@index([problemType])
   @@index([district])
   @@index([isPublished])
+  @@index([incidentId])
   @@map("requests")
 }
 
@@ -177,6 +199,9 @@ model Incident {
   createdById Int
   createdBy   User @relation("IncidentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
 
+  // Заявки привязанные к инциденту
+  requests Request[] @relation("IncidentRequests")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -184,6 +209,25 @@ model Incident {
   @@index([severity])
   @@index([district])
   @@map("incidents")
+}
+
+model ActivityLog {
+  id         Int            @id @default(autoincrement())
+  action     ActivityAction
+  entityType String         // "request" | "user" | "incident" | "volunteer"
+  entityId   Int?
+  meta       Json?          // дополнительные данные (старый статус, новый статус и т.д.)
+
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
 }
 
 model RequestTelegramMessage {
@@ -222,4 +266,33 @@ model PasswordResetToken {
 
   @@index([tokenHash])
   @@map("password_reset_tokens")
+}
+
+model NewsItem {
+  id          Int      @id @default(autoincrement())
+  externalId  String   @unique  // slug или URL-идентификатор статьи
+  title       String
+  description String?
+  imageUrl    String?
+  sourceUrl   String
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([publishedAt])
+  @@map("news_items")
+}
+
+model NewsItem {
+  id          Int      @id @default(autoincrement())
+  title       String
+  url         String   @unique
+  imageUrl    String?
+  description String?
+  publishedAt DateTime?
+  source      String   @default("tengrinews")
+  createdAt   DateTime @default(now())
+
+  @@index([publishedAt])
+  @@index([source])
+  @@map("news_items")
 }

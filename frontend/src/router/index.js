@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 
 const routes = [
+  // ── Публичные страницы ────────────────────────────────────
   {
     path: '/',
     name: 'Home',
@@ -22,31 +23,18 @@ const routes = [
     name: 'ResetPassword',
     component: () => import('../views/ResetPasswordPage.vue'),
   },
+
+  // ── Авторизованные страницы ───────────────────────────────
   {
     path: '/',
     component: () => import('../components/layout/AuthenticatedLayout.vue'),
     meta: { requiresAuth: true },
     children: [
-      {
-        path: 'dashboard',
-        name: 'Dashboard',
-        component: () => import('../views/DashboardPage.vue'),
-      },
-      {
-        path: 'map',
-        name: 'Map',
-        component: () => import('../views/MapPage.vue'),
-      },
-      {
-        path: 'create-request',
-        name: 'CreateRequest',
-        component: () => import('../views/CreateRequestPage.vue'),
-      },
-      {
-        path: 'my-requests',
-        name: 'MyRequests',
-        component: () => import('../views/MyRequestsPage.vue'),
-      },
+      { path: 'dashboard',      name: 'Dashboard',           component: () => import('../views/DashboardPage.vue') },
+      { path: 'map',            name: 'Map',                 component: () => import('../views/MapPage.vue') },
+      { path: 'create-request', name: 'CreateRequest',       component: () => import('../views/CreateRequestPage.vue') },
+      { path: 'my-requests',    name: 'MyRequests',          component: () => import('../views/MyRequestsPage.vue') },
+      { path: 'profile',        name: 'Profile',             component: () => import('../views/ProfilePage.vue') },
       {
         path: 'requests',
         name: 'CoordinatorRequests',
@@ -71,13 +59,64 @@ const routes = [
         component: () => import('../views/VolunteerTasksPage.vue'),
         meta: { roles: ['VOLUNTEER'] },
       },
+    ],
+  },
+
+  // ── Админ-панель ──────────────────────────────────────────
+  {
+    path: '/admin',
+    component: () => import('../components/layout/AdminLayout.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN'] },
+    children: [
       {
-        path: 'profile',
-        name: 'Profile',
-        component: () => import('../views/ProfilePage.vue'),
+        path: '',
+        name: 'AdminDashboard',
+        component: () => import('../views/admin/AdminDashboardPage.vue'),
+      },
+      {
+        path: 'users',
+        name: 'AdminUsers',
+        component: () => import('../views/admin/AdminUsersPage.vue'),
+      },
+      {
+        path: 'users/:id',
+        name: 'AdminUserDetail',
+        component: () => import('../views/admin/AdminUserDetailPage.vue'),
+      },
+      {
+        path: 'requests',
+        name: 'AdminRequests',
+        component: () => import('../views/admin/AdminRequestsPage.vue'),
+      },
+      {
+        path: 'requests/:id',
+        name: 'AdminRequestDetail',
+        component: () => import('../views/admin/AdminRequestDetailPage.vue'),
+      },
+      {
+        path: 'incidents',
+        name: 'AdminIncidents',
+        component: () => import('../views/admin/AdminIncidentsPage.vue'),
+      },
+      {
+        path: 'incidents/new',
+        name: 'AdminIncidentNew',
+        component: () => import('../views/admin/AdminIncidentFormPage.vue'),
+      },
+      {
+        path: 'incidents/:id',
+        name: 'AdminIncidentDetail',
+        component: () => import('../views/admin/AdminIncidentDetailPage.vue'),
+      },
+      {
+        path: 'incidents/:id/edit',
+        name: 'AdminIncidentEdit',
+        component: () => import('../views/admin/AdminIncidentFormPage.vue'),
       },
     ],
   },
+
+  // ── 404 ───────────────────────────────────────────────────
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
@@ -89,28 +128,30 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior(to) {
-    if (to.hash) {
-      return { el: to.hash, behavior: 'smooth' }
-    }
+    if (to.hash) return { el: to.hash, behavior: 'smooth' }
     return { top: 0 }
   },
 })
 
-router.beforeEach((to, from, next) => {
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
-  const allowedRoles = to.meta.roles
+router.beforeEach((to, _from, next) => {
+  const requiresAuth = to.matched.some((r) => r.meta.requiresAuth)
+  const allowedRoles = to.meta.roles || to.matched.find((r) => r.meta.roles)?.meta.roles
   const authStore = useAuthStore()
+
   if (requiresAuth && !authStore.isAuthenticated) {
     next('/login')
     return
   }
+
   if (allowedRoles?.length && authStore.user) {
     const role = (authStore.user.role || '').toUpperCase()
     if (!allowedRoles.includes(role)) {
-      next('/dashboard')
+      // Админа редиректим в /admin, остальных в /dashboard
+      next(role === 'ADMIN' ? '/admin' : '/dashboard')
       return
     }
   }
+
   next()
 })
 
