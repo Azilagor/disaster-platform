@@ -173,7 +173,7 @@
     "forgotSent": "Поштаны тексеріңіз — құпия сөзді қалпына келтіру сілтемесін жібердік.",
     "forgotError": "Хат жіберілмеді. Мекенжайды тексеріңіз немесе кейінірек көріңіз.",
     "passwordPlaceholder": "••••••••",
-    "emailPlaceholder": "your@email.com"
+    "emailPlaceholder": "your{'@'}email.com"
   },
   "notFound": {
     "title": "Бет табылмады",
@@ -349,7 +349,7 @@
     "photoHint": "JPG, PNG немесе WebP, 2 МБ-қа дейін",
     "editProfile": "Профильді өңдеу",
     "personal": "Жеке деректер",
-    "telegramPlaceholder": "@username немесе username",
+    "telegramPlaceholder": "{'@'}username немесе username",
     "statistics": "Статистика",
     "requestsCreated": "Жасалған сұраныстар",
     "doneAsVolunteer": "Орындалған (ерікті ретінде)",

@@ -173,7 +173,7 @@
     "forgotSent": "Проверьте почту — мы отправили ссылку для сброса пароля.",
     "forgotError": "Не удалось отправить письмо. Проверьте email или попробуйте позже.",
     "passwordPlaceholder": "••••••••",
-    "emailPlaceholder": "your@email.com"
+    "emailPlaceholder": "your{'@'}email.com"
   },
   "notFound": {
     "title": "Страница не найдена",
@@ -349,7 +349,7 @@
     "photoHint": "JPG, PNG или WebP, до 2 МБ",
     "editProfile": "Редактировать профиль",
     "personal": "Личные данные",
-    "telegramPlaceholder": "@username или username",
+    "telegramPlaceholder": "{'@'}username или username",
     "statistics": "Статистика",
     "requestsCreated": "Созданных запросов",
     "doneAsVolunteer": "Выполнено (как волонтёр)",

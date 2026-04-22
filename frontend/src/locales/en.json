@@ -173,7 +173,7 @@
     "forgotSent": "Check your email — we sent a password reset link.",
     "forgotError": "Could not send the email. Check the address or try later.",
     "passwordPlaceholder": "••••••••",
-    "emailPlaceholder": "your@email.com"
+    "emailPlaceholder": "your{'@'}email.com"
   },
   "notFound": {
     "title": "Page not found",
@@ -349,7 +349,7 @@
     "photoHint": "JPG, PNG, or WebP, up to 2 MB",
     "editProfile": "Edit profile",
     "personal": "Personal details",
-    "telegramPlaceholder": "@username or username",
+    "telegramPlaceholder": "{'@'}username or username",
     "statistics": "Statistics",
     "requestsCreated": "Requests created",
     "doneAsVolunteer": "Completed (as volunteer)",
