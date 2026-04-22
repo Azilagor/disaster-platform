@@ -264,6 +264,37 @@
     "geocoding": "Resolving address...",
     "clickHint": "Click the map to set location"
   },
+  "weather": {
+    "title": "Weather",
+    "loading": "Loading forecast...",
+    "refresh": "Refresh",
+    "daily": "Next days",
+    "wind": "Wind",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "fetchFailed": "Could not load weather forecast",
+    "noCoordinates": "No coordinates for weather forecast",
+    "invalidCoordinates": "Invalid coordinates",
+    "conditions": {
+      "clear": "Clear",
+      "mainly_clear": "Mostly clear",
+      "partly_cloudy": "Partly cloudy",
+      "overcast": "Overcast",
+      "fog": "Fog",
+      "drizzle": "Drizzle",
+      "freezing_drizzle": "Freezing drizzle",
+      "rain": "Rain",
+      "freezing_rain": "Freezing rain",
+      "snow": "Snow",
+      "snow_grains": "Snow grains",
+      "rain_showers": "Rain showers",
+      "snow_showers": "Snow showers",
+      "thunderstorm": "Thunderstorm",
+      "thunderstorm_hail": "Thunderstorm with hail",
+      "unknown": "Unknown"
+    },
+    "unavailable": "Forecast unavailable"
+  },
   "createRequest": {
     "step1": "Type of help",
     "step2": "Details",

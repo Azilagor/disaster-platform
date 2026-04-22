@@ -264,6 +264,37 @@
     "geocoding": "Мекенжай анықталуда...",
     "clickHint": "Орынды көрсету үшін картаға басыңыз"
   },
+  "weather": {
+    "title": "Ауа райы",
+    "loading": "Болжам жүктелуде...",
+    "refresh": "Жаңарту",
+    "daily": "Алдағы күндер",
+    "wind": "Жел",
+    "today": "Бүгін",
+    "tomorrow": "Ертең",
+    "fetchFailed": "Ауа райы болжамын жүктеу мүмкін болмады",
+    "noCoordinates": "Болжам үшін координаттар жоқ",
+    "invalidCoordinates": "Координаттар қате",
+    "conditions": {
+      "clear": "Ашық",
+      "mainly_clear": "Көбіне ашық",
+      "partly_cloudy": "Ала бұлтты",
+      "overcast": "Бұлтты",
+      "fog": "Тұман",
+      "drizzle": "Сіркіреме жаңбыр",
+      "freezing_drizzle": "Мұзды сіркіреме",
+      "rain": "Жаңбыр",
+      "freezing_rain": "Мұзды жаңбыр",
+      "snow": "Қар",
+      "snow_grains": "Қар түйіршігі",
+      "rain_showers": "Нөсер",
+      "snow_showers": "Қар жауу",
+      "thunderstorm": "Найзағай",
+      "thunderstorm_hail": "Бұршақ аралас найзағай",
+      "unknown": "Белгісіз"
+    },
+    "unavailable": "Болжам қолжетімсіз"
+  },
   "createRequest": {
     "step1": "Көмек түрі",
     "step2": "Толығырақ",

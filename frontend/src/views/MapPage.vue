@@ -131,6 +131,68 @@
             <h4>{{ $t('common.contact') }}</h4>
             <p>{{ selectedRequest.contactPhone }}</p>
           </div>
+
+          <div class="detail-section weather-section">
+            <div class="weather-section__head">
+              <h4 class="weather-section__title">{{ $t('weather.title') }}</h4>
+              <button
+                type="button"
+                class="weather-section__refresh"
+                :disabled="weatherState.status === 'loading'"
+                @click="loadWeatherForSelected(true)"
+              >
+                {{ $t('weather.refresh') }}
+              </button>
+            </div>
+
+            <div v-if="weatherState.status === 'loading'" class="weather-section__state">
+              {{ $t('weather.loading') }}
+            </div>
+            <div v-else-if="weatherState.status === 'error'" class="weather-section__state weather-section__state--error">
+              {{ te(weatherState.errorKey) ? $t(weatherState.errorKey) : $t('weather.fetchFailed') }}
+            </div>
+            <div v-else-if="weatherState.status === 'ready' && weatherState.data" class="weather-section__content">
+              <div class="weather-current">
+                <div class="weather-current__main">
+                  <div class="weather-current__temp">
+                    {{ Math.round(weatherState.data.current?.temperature_2m) }}°C
+                  </div>
+                  <div class="weather-current__desc">
+                    {{ weatherConditionLabel(weatherState.data.current?.weather_code) }}
+                  </div>
+                </div>
+                <div class="weather-current__meta">
+                  <div>
+                    <span class="weather-meta-label">{{ $t('weather.wind') }}:</span>
+                    {{ Math.round(weatherState.data.current?.wind_speed_10m) }} {{ weatherState.data.current_units?.wind_speed_10m || 'km/h' }}
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="weatherState.data.daily?.time?.length" class="weather-daily">
+                <div class="weather-daily__title">{{ $t('weather.daily') }}</div>
+                <div class="weather-daily__list">
+                  <div
+                    v-for="(d, idx) in weatherState.data.daily.time"
+                    :key="d"
+                    class="weather-day"
+                  >
+                    <div class="weather-day__date">{{ formatDayLabel(d, idx) }}</div>
+                    <div class="weather-day__cond">
+                      {{ weatherConditionLabel(weatherState.data.daily.weather_code?.[idx]) }}
+                    </div>
+                    <div class="weather-day__temps">
+                      <span class="weather-day__tmax">{{ Math.round(weatherState.data.daily.temperature_2m_max?.[idx]) }}°</span>
+                      <span class="weather-day__tmin">{{ Math.round(weatherState.data.daily.temperature_2m_min?.[idx]) }}°</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="weather-section__state">
+              {{ $t('weather.unavailable') }}
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" @click="selectedRequest = null">{{ $t('common.close') }}</button>
@@ -155,6 +217,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth.js'
 import { getRequestsMap, getMyRequests, volunteerRespond } from '../api/requests.js'
+import { getWeatherForecast, weatherGroupFromWmoCode } from '../api/weather.js'
 import { withLoading } from '../stores/loading.js'
 import {
   ALLOWED_DISTRICTS,
@@ -185,6 +248,14 @@ const mapRef = ref(null)
 
 let map = null
 let markersLayer = null
+
+const weatherState = reactive({
+  status: 'idle', // idle | loading | ready | error
+  errorKey: '',
+  data: null,
+  forKey: '',
+})
+let weatherAbort = null
 
 const filters = reactive({ scope: 'all', district: '', priority: '', problemType: '' })
 
@@ -336,6 +407,76 @@ function markerLatLng(r) {
   return null
 }
 
+function selectedRequestWeatherKey(r) {
+  const pos = markerLatLng(r)
+  if (!pos) return ''
+  return `${Number(pos[0]).toFixed(5)}:${Number(pos[1]).toFixed(5)}`
+}
+
+function weatherConditionLabel(code) {
+  const group = weatherGroupFromWmoCode(code)
+  const key = `weather.conditions.${group}`
+  return te(key) ? t(key) : t('weather.conditions.unknown')
+}
+
+function formatDayLabel(isoDate, idx) {
+  if (!isoDate) return ''
+  if (idx === 0) return t('weather.today')
+  if (idx === 1) return t('weather.tomorrow')
+  try {
+    return new Intl.DateTimeFormat(locale.value, { weekday: 'short', day: '2-digit', month: '2-digit' }).format(
+      new Date(isoDate)
+    )
+  } catch {
+    return isoDate
+  }
+}
+
+async function loadWeatherForSelected(force = false) {
+  const r = selectedRequest.value
+  if (!r) return
+
+  const pos = markerLatLng(r)
+  if (!pos) {
+    weatherState.status = 'error'
+    weatherState.errorKey = 'weather.noCoordinates'
+    weatherState.data = null
+    weatherState.forKey = ''
+    return
+  }
+
+  const key = selectedRequestWeatherKey(r)
+  if (!force && weatherState.status === 'ready' && weatherState.forKey === key) return
+
+  try {
+    weatherAbort?.abort()
+  } catch {
+    /* ignore */
+  }
+  weatherAbort = new AbortController()
+
+  weatherState.status = 'loading'
+  weatherState.errorKey = ''
+  weatherState.data = null
+  weatherState.forKey = key
+
+  try {
+    const data = await getWeatherForecast({
+      latitude: pos[0],
+      longitude: pos[1],
+      locale: locale.value,
+      signal: weatherAbort.signal,
+    })
+    weatherState.status = 'ready'
+    weatherState.data = data
+  } catch (e) {
+    if (weatherAbort?.signal?.aborted) return
+    weatherState.status = 'error'
+    weatherState.errorKey = e?.message || 'weather.fetchFailed'
+    weatherState.data = null
+  }
+}
+
 function updateMarkers() {
   if (!map || !markersLayer) return
   markersLayer.clearLayers()
@@ -422,6 +563,25 @@ async function respondFromMap(id) {
     respondingId.value = null
   }
 }
+
+watch(
+  () => [selectedRequest.value?.id, locale.value],
+  () => {
+    if (!selectedRequest.value) {
+      try {
+        weatherAbort?.abort()
+      } catch {
+        /* ignore */
+      }
+      weatherState.status = 'idle'
+      weatherState.errorKey = ''
+      weatherState.data = null
+      weatherState.forKey = ''
+      return
+    }
+    loadWeatherForSelected(true)
+  }
+)
 </script>
 
 <style scoped>
@@ -550,6 +710,55 @@ async function respondFromMap(id) {
 .detail-section { margin-top: 0.75rem; }
 .detail-section h4 { margin: 0 0 0.25rem; font-size: 0.85rem; color: #666; }
 .detail-section p { margin: 0; font-size: 0.95rem; }
+.weather-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.weather-section__title { margin: 0; font-size: 0.85rem; color: #666; }
+.weather-section__refresh {
+  font-size: 0.8rem;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  color: #374151;
+}
+.weather-section__refresh:disabled { opacity: 0.6; cursor: not-allowed; }
+.weather-section__state { font-size: 0.9rem; color: #6b7280; margin-top: 0.25rem; }
+.weather-section__state--error { color: #b91c1c; }
+.weather-current {
+  margin-top: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+.weather-current__main { display: flex; align-items: baseline; gap: 0.6rem; }
+.weather-current__temp { font-size: 1.25rem; font-weight: 700; color: #111827; }
+.weather-current__desc { font-size: 0.9rem; color: #374151; }
+.weather-current__meta { margin-top: 0.35rem; font-size: 0.85rem; color: #4b5563; }
+.weather-meta-label { color: #6b7280; }
+.weather-daily { margin-top: 0.6rem; }
+.weather-daily__title { font-size: 0.82rem; color: #6b7280; margin-bottom: 0.35rem; }
+.weather-daily__list { display: flex; flex-direction: column; gap: 0.35rem; }
+.weather-day {
+  display: grid;
+  grid-template-columns: 1.1fr 1.7fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  background: #fff;
+}
+.weather-day__date { font-size: 0.85rem; color: #111827; font-weight: 600; }
+.weather-day__cond { font-size: 0.85rem; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.weather-day__temps { font-size: 0.85rem; color: #374151; display: flex; gap: 0.35rem; justify-content: flex-end; }
+.weather-day__tmax { font-weight: 600; }
+.weather-day__tmin { color: #6b7280; }
 .modal-footer { display: flex; gap: 0.5rem; justify-content: flex-end; padding: 1rem; border-top: 1px solid #eee; }
 .problem-type { font-size: 0.85rem; color: #666; }
 </style>
