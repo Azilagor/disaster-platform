@@ -5,7 +5,9 @@
         <button
           type="button"
           class="panel-toggle"
+          :class="{ 'panel-toggle--active': panelOpen }"
           :aria-label="panelOpen ? $t('common.hideFilters') : $t('common.showFilters')"
+          :aria-expanded="panelOpen"
           @click="panelOpen = !panelOpen"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -594,20 +596,53 @@ watch(
 }
 .map-container { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .panel-toggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 0.75rem;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border: 1px solid #1d4ed8;
+  border-radius: 10px;
+  box-shadow:
+    0 2px 10px rgba(37, 99, 235, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.06);
   cursor: pointer;
   font-size: 0.875rem;
-  color: #374151;
+  font-weight: 600;
+  color: #ffffff;
+  flex-shrink: 0;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+}
+.panel-toggle:hover {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow:
+    0 4px 16px rgba(37, 99, 235, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.panel-toggle:active {
+  transform: scale(0.98);
+}
+.panel-toggle:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.95),
+    0 0 0 5px rgba(59, 130, 246, 0.55),
+    0 2px 10px rgba(37, 99, 235, 0.4);
+}
+.panel-toggle--active {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  border-color: #1e3a8a;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.15),
+    0 2px 12px rgba(30, 64, 175, 0.45);
+}
+.panel-toggle--active:hover {
+  background: linear-gradient(180deg, #1e40af 0%, #172554 100%);
+}
+.panel-toggle svg {
+  color: inherit;
   flex-shrink: 0;
 }
-.panel-toggle:hover { background: #f9fafb; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
 .panel-toggle .panel-toggle-label { white-space: nowrap; }
 .filters-drawer {
   position: fixed;
