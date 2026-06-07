@@ -55,9 +55,36 @@ try {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const defaultAllowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:4999",
+  "https://oyustudio.kz",
+  "https://www.oyustudio.kz",
+  "https://platform.oyustudio.kz",
+];
+
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOrigins = allowedOrigins.length ? allowedOrigins : defaultAllowedOrigins;
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || corsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+};
+
 // ── Безопасность ────────────────────────────────────────────
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.set("trust proxy", true);
 
 // ── Парсинг тела запроса ────────────────────────────────────
